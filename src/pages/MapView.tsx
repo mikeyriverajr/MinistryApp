@@ -47,10 +47,10 @@ export default function MapView() {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <MapUpdater center={center} />
-
+        
         {validVisits.map((visit) => (
-          <Marker
-            key={visit.id}
+          <Marker 
+            key={visit.id} 
             position={[visit.latitude as number, visit.longitude as number]}
           >
             <Popup>

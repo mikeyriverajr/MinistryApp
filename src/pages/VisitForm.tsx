@@ -49,7 +49,7 @@ export default function VisitForm() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-
+    
     if (type === 'checkbox') {
       const checked = (e.target as HTMLInputElement).checked;
       setFormData(prev => ({ ...prev, [name]: checked }));
@@ -71,7 +71,7 @@ export default function VisitForm() {
         createdAt: new Date(),
         updatedAt: new Date()
       } as Visit;
-
+      
       await db.visits.add(visitData);
       navigate('/');
     } catch (error) {

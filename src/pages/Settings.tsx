@@ -62,14 +62,14 @@ export default function Settings() {
 
     const permission = await Notification.requestPermission();
     setNotificationStatus(permission);
-
+    
     if (permission === 'granted') {
       new Notification('¡Notificaciones activadas!', {
         body: 'Recibirás recordatorios de tus revisitas y estudios.',
         icon: '/vite.svg'
       });
       // In a real app with a backend, we would subscribe to push notifications here
-      // and register a service worker. For this local PWA, we're setting up the
+      // and register a service worker. For this local PWA, we're setting up the 
       // foundation for local notifications or future Push API integration.
       if ('serviceWorker' in navigator) {
           navigator.serviceWorker.register('/service-worker.js').then(registration => {
@@ -93,22 +93,22 @@ export default function Settings() {
           <Bell className="mr-2" size={20} />
           Notificaciones
         </h3>
-
+        
         <div className="flex justify-between items-center">
           <div>
             <p className="text-sm font-medium text-gray-800">Alertas de visitas</p>
             <p className="text-xs text-gray-500">
-              {notificationStatus === 'granted' ? 'Activadas' :
+              {notificationStatus === 'granted' ? 'Activadas' : 
                notificationStatus === 'denied' ? 'Bloqueadas por el navegador' :
                notificationStatus === 'unsupported' ? 'No soportado' : 'No configuradas'}
             </p>
           </div>
-
-          <button
+          
+          <button 
             onClick={requestNotificationPermission}
             disabled={notificationStatus === 'granted' || notificationStatus === 'unsupported'}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              notificationStatus === 'granted'
+              notificationStatus === 'granted' 
                 ? 'bg-green-100 text-green-800 cursor-not-allowed'
                 : 'bg-[#26818E] text-white hover:bg-[#1d616a]'
             }`}
@@ -122,7 +122,7 @@ export default function Settings() {
         <h3 className="font-bold text-gray-700 flex items-center border-b pb-2">
           Gestión de Datos
         </h3>
-
+        
         <p className="text-sm text-gray-600 mb-4">
           Crea una copia de seguridad de tus registros o restaura datos de otro dispositivo.
         </p>
@@ -135,7 +135,7 @@ export default function Settings() {
             <Download className="mr-2" size={18} />
             Exportar Copia de Seguridad
           </button>
-
+          
           <button
             onClick={handleImportClick}
             className="flex items-center justify-center py-3 px-4 border border-[#26818E] text-[#26818E] rounded-lg text-sm font-medium bg-white hover:bg-blue-50"
@@ -143,15 +143,15 @@ export default function Settings() {
             <Upload className="mr-2" size={18} />
             Importar Datos
           </button>
-          <input
-            type="file"
-            accept=".json"
-            className="hidden"
+          <input 
+            type="file" 
+            accept=".json" 
+            className="hidden" 
             ref={fileInputRef}
             onChange={handleFileChange}
           />
         </div>
-
+        
         {importStatus && (
           <div className={`mt-4 p-3 rounded-md flex items-center justify-center text-sm ${
             importStatus.includes('exitosa') ? 'bg-green-50 text-green-700' : 'bg-blue-50 text-blue-700'

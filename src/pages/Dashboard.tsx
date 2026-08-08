@@ -32,8 +32,8 @@ export default function Dashboard() {
       </div>
 
       <div className="mt-8 flex flex-col space-y-3">
-        <Link
-          to="/add"
+        <Link 
+          to="/add" 
           className="bg-[#26818E] text-white text-center py-3 rounded-lg font-medium shadow-sm hover:bg-[#1d616a] transition-colors"
         >
           Registrar Nueva Visita

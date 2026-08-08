@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from './db/database';
 import SetupWizard from './components/SetupWizard';
@@ -31,7 +31,7 @@ function App() {
         <header className="bg-[#26818E] text-white p-4 text-center font-bold text-xl sticky top-0 z-50 shadow-md">
           Mi Ministerio
         </header>
-
+        
         <main className="flex-1 p-4 overflow-y-auto pb-24">
           {!isSetupComplete ? (
             <SetupWizard onComplete={() => {}} />
@@ -45,7 +45,7 @@ function App() {
             </Routes>
           )}
         </main>
-
+        
         {isSetupComplete && <Navigation />}
       </div>
     </Router>

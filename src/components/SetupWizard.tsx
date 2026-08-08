@@ -21,7 +21,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
         <h2 className="text-2xl font-bold text-center mb-6 text-[#26818E]">Bienvenido a Mi Ministerio</h2>
         <p className="text-gray-600 mb-6 text-center">Para comenzar, ¿cómo te llamas?</p>
-
+        
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-700">Tu Nombre</label>

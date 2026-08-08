@@ -16,32 +16,32 @@ export default function CalendarView() {
   // Filter events for the selected date
   const getEventsForDate = (date: Date) => {
     if (!visits) return [];
-
+    
     return visits.filter(visit => {
       let isEventToday = false;
-
+      
       // Check nextVisitDate
       if (visit.nextVisitDate && isSameDay(new Date(visit.nextVisitDate), date)) {
         isEventToday = true;
       }
-
+      
       // Check recurring studies
       if (visit.isRecurringStudy && visit.recurringStudyDayOfWeek !== null) {
         if (date.getDay() === visit.recurringStudyDayOfWeek) {
           isEventToday = true;
         }
       }
-
+      
       return isEventToday;
     });
   };
 
   const selectedEvents = getEventsForDate(selectedDate);
-
+  
   const handlePrevWeek = () => {
     setSelectedDate(prev => subDays(prev, 7));
   };
-
+  
   const handleNextWeek = () => {
     setSelectedDate(prev => addDays(prev, 7));
   };
@@ -60,12 +60,12 @@ export default function CalendarView() {
             <ChevronRight size={24} />
           </button>
         </div>
-
+        
         <div className="flex justify-between items-center bg-gray-50 p-2 rounded-lg">
           {weekDays.map(day => {
             const isSelected = isSameDay(day, selectedDate);
             const hasEvents = getEventsForDate(day).length > 0;
-
+            
             return (
               <button
                 key={day.toString()}
@@ -93,7 +93,7 @@ export default function CalendarView() {
         <h3 className="font-bold text-gray-700 mb-3 ml-1">
           Agenda para el {format(selectedDate, "d 'de' MMMM", { locale: es })}
         </h3>
-
+        
         {selectedEvents.length === 0 ? (
           <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 text-center text-gray-500">
             No tienes revisitas ni estudios programados para este día.
@@ -102,8 +102,8 @@ export default function CalendarView() {
           <div className="space-y-3">
             {selectedEvents.map(event => {
               const isRecurringToday = event.isRecurringStudy && selectedDate.getDay() === event.recurringStudyDayOfWeek;
-              const time = isRecurringToday && event.recurringStudyTime
-                ? event.recurringStudyTime
+              const time = isRecurringToday && event.recurringStudyTime 
+                ? event.recurringStudyTime 
                 : (event.nextVisitDate ? format(new Date(event.nextVisitDate), 'HH:mm') : 'Hora por definir');
 
               return (
