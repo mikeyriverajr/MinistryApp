@@ -1,13 +1,16 @@
 import { NavLink } from 'react-router-dom';
 import { Home, Map as MapIcon, Calendar, Settings, PlusCircle } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export default function Navigation() {
+  const { t } = useLanguage();
+
   const navItems = [
-    { to: '/', icon: Home, label: 'Inicio' },
-    { to: '/map', icon: MapIcon, label: 'Mapa' },
-    { to: '/add', icon: PlusCircle, label: 'Añadir' },
-    { to: '/calendar', icon: Calendar, label: 'Calendario' },
-    { to: '/settings', icon: Settings, label: 'Ajustes' },
+    { to: '/', icon: Home, label: t('navDashboard') },
+    { to: '/map', icon: MapIcon, label: t('navMap') },
+    { to: '/add', icon: PlusCircle, label: t('registerNewVisit').split(' ')[0] },
+    { to: '/calendar', icon: Calendar, label: t('navCalendar') },
+    { to: '/settings', icon: Settings, label: t('navSettings') },
   ];
 
   return (
