@@ -6,6 +6,12 @@ export interface UserProfile {
   name: string;
 }
 
+export interface FollowUpVisit {
+  id: string; // generate a random ID (e.g. UUID or Date.now().toString())
+  date: Date;
+  notes: string;
+}
+
 export interface Visit {
   id?: number;
   name: string;
@@ -19,7 +25,7 @@ export interface Visit {
   isRecurringStudy: boolean;
   recurringStudyDayOfWeek: number | null; // 0 = Domingo, 1 = Lunes, etc.
   recurringStudyTime: string | null; // e.g. "14:30"
-  isReturnVisit: boolean;
+  followUpVisits?: FollowUpVisit[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -33,6 +39,14 @@ export class MinistryDatabase extends Dexie {
     this.version(1).stores({
       userProfile: '++id, name',
       visits: '++id, name, dateFound, nextVisitDate, interestLevel, isRecurringStudy, isReturnVisit'
+    });
+    this.version(2).stores({
+      visits: '++id, name, dateFound, nextVisitDate, interestLevel, isRecurringStudy'
+    }).upgrade(tx => {
+      return tx.table("visits").toCollection().modify(visit => {
+        delete visit.isReturnVisit;
+        visit.followUpVisits = [];
+      });
     });
   }
 }

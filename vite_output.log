@@ -2,10 +2,8 @@
 > ministry-organizer@1.0.0 dev
 > vite
 
-Port 5173 is in use, trying another one...
-Port 5174 is in use, trying another one...
 
-  VITE v6.4.3  ready in 326 ms
+  VITE v6.4.3  ready in 314 ms
 
-  ➜  Local:   http://localhost:5175/
+  ➜  Local:   http://localhost:5173/
   ➜  Network: use --host to expose
