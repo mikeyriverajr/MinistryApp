@@ -26,6 +26,8 @@ export interface Visit {
   recurringStudyDayOfWeek: number | null; // 0 = Domingo, 1 = Lunes, etc.
   recurringStudyTime: string | null; // e.g. "14:30"
   followUpVisits?: FollowUpVisit[];
+  skippedDates?: Date[]; // For custom exceptions
+  customDates?: { originalDate: Date, newDate: Date }[]; // If moved for just one class
   createdAt: Date;
   updatedAt: Date;
 }

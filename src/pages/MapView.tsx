@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, LayersControl } from 'react-leaflet';
 import { useNavigate } from 'react-router-dom';
 import 'leaflet/dist/leaflet.css';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/database';
 import L from 'leaflet';
 import { X, Navigation, Eye, Crosshair } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const createColoredIcon = (color: string) => {
   return new L.Icon({
@@ -35,8 +36,10 @@ function MapUpdater({ center, zoom }: { center: [number, number], zoom?: number 
 export default function MapView() {
   const navigate = useNavigate();
   const visits = useLiveQuery(() => db.visits.toArray());
+  const { t } = useLanguage();
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
-  const [mapCenter, setMapCenter] = useState<[number, number]>([-25.5134, -54.6111]);
+  // Default map view: Encarnación, Paraguay
+  const [mapCenter, setMapCenter] = useState<[number, number]>([-27.33056, -55.86667]);
   const [zoomLevel, setZoomLevel] = useState(14);
 
   useEffect(() => {
@@ -66,7 +69,7 @@ export default function MapView() {
   return (
     <div className="absolute inset-0 z-50 bg-gray-100 flex flex-col">
       <div className="bg-[#26818E] text-white p-4 shadow-md flex justify-between items-center">
-        <h2 className="font-bold text-lg">Mapa de Territorio</h2>
+        <h2 className="font-bold text-lg">{t('territoryMap')}</h2>
         <button
           onClick={() => navigate('/')}
           className="p-1.5 hover:bg-[#1d616a] rounded-full transition-colors"
@@ -79,16 +82,26 @@ export default function MapView() {
         <button
           onClick={handleCenterOnUser}
           className="absolute bottom-6 right-6 z-[400] bg-white p-3 rounded-full shadow-lg border border-gray-200 text-[#26818E] hover:bg-gray-50 transition-colors"
-          title="Mi ubicación"
+          title={t('myLocation')}
         >
           <Crosshair size={24} />
         </button>
 
         <MapContainer center={mapCenter} zoom={zoomLevel} style={{ height: '100%', width: '100%' }}>
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
+          <LayersControl position="topright">
+            <LayersControl.BaseLayer checked name={t('toggleStreetMap')}>
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+            </LayersControl.BaseLayer>
+            <LayersControl.BaseLayer name={t('toggleSatelliteMap')}>
+              <TileLayer
+                attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+              />
+            </LayersControl.BaseLayer>
+          </LayersControl>
           <MapUpdater center={mapCenter} zoom={zoomLevel} />
 
           {userLocation && (
@@ -103,7 +116,7 @@ export default function MapView() {
                   shadowSize: [41, 41]
                 })}
              >
-                <Popup>Tu ubicación actual</Popup>
+                <Popup>{t('yourCurrentLocation')}</Popup>
              </Marker>
           )}
         
@@ -116,13 +129,13 @@ export default function MapView() {
               <Popup className="custom-popup">
                 <div className="p-1 min-w-[200px]">
                   <h3 className="font-bold text-gray-800 text-lg">{visit.name}</h3>
-                  <p className="text-sm text-gray-600 mt-1">{visit.houseDescription}</p>
+                  <p className="text-sm text-gray-600 mt-1">{visit.generalNotes}</p>
                   <p className="text-xs text-gray-500 mt-2 flex items-center">
-                    Interés: <span className="font-medium ml-1">{visit.interestLevel}</span>
+                    {t('interest')}: <span className="font-medium ml-1">{visit.interestLevel === 'Alto' ? t('high') : visit.interestLevel === 'Medio' ? t('medium') : t('low')}</span>
                   </p>
                   {visit.nextVisitDate && (
                     <p className="text-xs text-[#26818E] mt-1 font-medium">
-                      Visita: {new Date(visit.nextVisitDate).toLocaleDateString()}
+                      {t('visit')}: {new Date(visit.nextVisitDate).toLocaleDateString()}
                     </p>
                   )}
                   <div className="flex flex-col space-y-2 mt-4 pt-3 border-t border-gray-100">
@@ -131,14 +144,14 @@ export default function MapView() {
                       className="flex items-center justify-center w-full px-3 py-1.5 bg-[#26818E] text-white rounded-md text-sm font-medium hover:bg-[#1d616a]"
                     >
                       <Eye size={14} className="mr-1.5" />
-                      Abrir Registro
+                      {t('openRecord')}
                     </button>
                     <button
                       onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${visit.latitude},${visit.longitude}`, '_blank')}
                       className="flex items-center justify-center w-full px-3 py-1.5 bg-blue-50 text-blue-600 rounded-md text-sm font-medium hover:bg-blue-100"
                     >
                       <Navigation size={14} className="mr-1.5" />
-                      Navegar
+                      {t('navigateMap')}
                     </button>
                   </div>
                 </div>
