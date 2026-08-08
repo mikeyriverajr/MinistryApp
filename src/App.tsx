@@ -9,6 +9,7 @@ import VisitForm from './pages/VisitForm';
 import MapView from './pages/MapView';
 import CalendarView from './pages/CalendarView';
 import Settings from './pages/Settings';
+import PersonRecord from './pages/PersonRecord';
 
 function App() {
   const [isInitializing, setIsInitializing] = useState(true);
@@ -42,6 +43,7 @@ function App() {
               <Route path="/add" element={<VisitForm />} />
               <Route path="/calendar" element={<CalendarView />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/person/:id" element={<PersonRecord />} />
             </Routes>
           )}
         </main>

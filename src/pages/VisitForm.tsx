@@ -1,12 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db, Visit } from '../db/database';
-import { MapPin, Save, ArrowLeft } from 'lucide-react';
-import { format } from 'date-fns';
+import { MapPin, Save, ArrowLeft, Link as LinkIcon } from 'lucide-react';
+import DatePicker from 'react-datepicker';
+import "react-datepicker/dist/react-datepicker.css";
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+// Fix for leaflet's default icon issue in React
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
+
+function LocationMarker({ position, setPosition }: { position: [number, number] | null, setPosition: (pos: [number, number]) => void }) {
+  useMapEvents({
+    click(e) {
+      setPosition([e.latlng.lat, e.latlng.lng]);
+    },
+  });
+
+  return position === null ? null : (
+    <Marker position={position}></Marker>
+  );
+}
+
+function MapUpdater({ center }: { center: [number, number] }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(center, map.getZoom());
+  }, [center, map]);
+  return null;
+}
 
 export default function VisitForm() {
   const navigate = useNavigate();
   const [isLocating, setIsLocating] = useState(false);
+  const [googleMapsLink, setGoogleMapsLink] = useState('');
+  const [linkError, setLinkError] = useState('');
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+
   const [formData, setFormData] = useState<Partial<Visit>>({
     name: '',
     dateFound: new Date(),
@@ -19,8 +55,16 @@ export default function VisitForm() {
     isRecurringStudy: false,
     recurringStudyDayOfWeek: 0,
     recurringStudyTime: '10:00',
-    isReturnVisit: false,
   });
+
+  useEffect(() => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => setUserLocation([position.coords.latitude, position.coords.longitude]),
+        (error) => console.error("Error obtaining location", error)
+      );
+    }
+  }, []);
 
   const handleGetLocation = () => {
     setIsLocating(true);
@@ -47,6 +91,34 @@ export default function VisitForm() {
     }
   };
 
+  const handleMapClick = (pos: [number, number]) => {
+    setFormData(prev => ({
+      ...prev,
+      latitude: pos[0],
+      longitude: pos[1]
+    }));
+  };
+
+  const handleLinkExtract = () => {
+    setLinkError('');
+    if (!googleMapsLink) return;
+
+    // Try to extract coordinates from URL like @-25.5134,-54.6111
+    const regex = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
+    const match = googleMapsLink.match(regex);
+
+    if (match && match[1] && match[2]) {
+      setFormData(prev => ({
+        ...prev,
+        latitude: parseFloat(match[1]),
+        longitude: parseFloat(match[2])
+      }));
+      setGoogleMapsLink('');
+    } else {
+      setLinkError('No se pudieron extraer las coordenadas de este enlace. Por favor, usa un enlace largo que contenga "@lat,lng" o selecciona en el mapa.');
+    }
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     
@@ -58,8 +130,7 @@ export default function VisitForm() {
     }
   };
 
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>, fieldName: 'dateFound' | 'nextVisitDate') => {
-    const date = e.target.value ? new Date(e.target.value) : null;
+  const handleDateChange = (date: Date | null, fieldName: 'dateFound' | 'nextVisitDate') => {
     setFormData(prev => ({ ...prev, [fieldName]: date }));
   };
 
@@ -80,11 +151,10 @@ export default function VisitForm() {
     }
   };
 
-  const formatDateForInput = (date: Date | null | undefined) => {
-    if (!date) return '';
-    // Use date-fns format to keep local timezone
-    return format(date, "yyyy-MM-dd'T'HH:mm");
-  };
+  const defaultCenter: [number, number] = [-25.5134, -54.6111]; // Default
+  const mapCenter = formData.latitude && formData.longitude
+    ? [formData.latitude, formData.longitude] as [number, number]
+    : (userLocation || defaultCenter);
 
   return (
     <div className="max-w-md mx-auto bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
@@ -111,29 +181,71 @@ export default function VisitForm() {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Fecha encontrado</label>
-          <input
-            type="datetime-local"
-            name="dateFound"
-            required
-            value={formatDateForInput(formData.dateFound)}
-            onChange={(e) => handleDateChange(e, 'dateFound')}
+          <DatePicker
+            selected={formData.dateFound as Date}
+            onChange={(date: Date | null) => handleDateChange(date, 'dateFound')}
+            showTimeSelect
+            timeFormat="HH:mm"
+            timeIntervals={15}
+            timeCaption="Hora"
+            dateFormat="d MMMM yyyy, h:mm aa"
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#26818E]"
+            required
           />
         </div>
 
         <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
           <label className="block text-sm font-medium text-gray-700 mb-2">Ubicación GPS</label>
-          <div className="flex items-center space-x-2">
+
+          <div className="flex flex-col space-y-4 mb-4">
             <button
               type="button"
               onClick={handleGetLocation}
               disabled={isLocating}
-              className="flex items-center px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md text-sm font-medium transition-colors"
+              className="flex items-center justify-center w-full px-4 py-2 bg-[#26818E] hover:bg-[#1d616a] text-white rounded-md text-sm font-medium transition-colors"
             >
               <MapPin size={16} className="mr-2" />
               {isLocating ? 'Buscando...' : 'Obtener mi ubicación actual'}
             </button>
+
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-500">O ingresa un enlace de Google Maps:</span>
+            </div>
+
+            <div className="flex space-x-2">
+              <input
+                type="text"
+                value={googleMapsLink}
+                onChange={(e) => setGoogleMapsLink(e.target.value)}
+                placeholder="https://www.google.com/maps/place/..."
+                className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#26818E]"
+              />
+              <button
+                type="button"
+                onClick={handleLinkExtract}
+                className="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md text-sm font-medium"
+              >
+                <LinkIcon size={16} />
+              </button>
+            </div>
+            {linkError && <p className="text-xs text-red-500 mt-1">{linkError}</p>}
           </div>
+
+          <div className="h-48 w-full rounded-md overflow-hidden border border-gray-300 relative z-0">
+             <MapContainer center={mapCenter} zoom={15} style={{ height: '100%', width: '100%' }}>
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                <MapUpdater center={mapCenter} />
+                <LocationMarker
+                  position={formData.latitude && formData.longitude ? [formData.latitude, formData.longitude] : null}
+                  setPosition={handleMapClick}
+                />
+             </MapContainer>
+          </div>
+          <p className="text-xs text-gray-500 mt-2">Haz clic en el mapa para ajustar la ubicación.</p>
+
           {formData.latitude && formData.longitude && (
             <p className="text-xs text-green-600 mt-2 font-medium">
               ✓ Ubicación guardada ({formData.latitude.toFixed(4)}, {formData.longitude.toFixed(4)})
@@ -165,42 +277,33 @@ export default function VisitForm() {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nivel de Interés</label>
-            <select
-              name="interestLevel"
-              value={formData.interestLevel}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#26818E]"
-            >
-              <option value="Bajo">Bajo</option>
-              <option value="Medio">Medio</option>
-              <option value="Alto">Alto</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center h-full">
-              <input
-                type="checkbox"
-                name="isReturnVisit"
-                checked={formData.isReturnVisit}
-                onChange={handleChange}
-                className="mr-2 h-4 w-4 text-[#26818E] focus:ring-[#26818E] border-gray-300 rounded"
-              />
-              Es Revisita
-            </label>
-          </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Nivel de Interés</label>
+          <select
+            name="interestLevel"
+            value={formData.interestLevel}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#26818E]"
+          >
+            <option value="Bajo">Bajo</option>
+            <option value="Medio">Medio</option>
+            <option value="Alto">Alto</option>
+          </select>
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Próxima Visita (Opcional)</label>
-          <input
-            type="datetime-local"
-            name="nextVisitDate"
-            value={formatDateForInput(formData.nextVisitDate)}
-            onChange={(e) => handleDateChange(e, 'nextVisitDate')}
+          <DatePicker
+            selected={formData.nextVisitDate as Date}
+            onChange={(date: Date | null) => handleDateChange(date, 'nextVisitDate')}
+            showTimeSelect
+            timeFormat="HH:mm"
+            timeIntervals={15}
+            timeCaption="Hora"
+            dateFormat="d MMMM yyyy, h:mm aa"
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#26818E]"
+            isClearable
+            placeholderText="Seleccionar fecha y hora"
           />
         </div>
 
@@ -213,7 +316,7 @@ export default function VisitForm() {
               onChange={handleChange}
               className="mr-2 h-4 w-4 text-[#26818E] focus:ring-[#26818E] border-gray-300 rounded"
             />
-            <span className="text-sm font-medium text-gray-700">Se estableció estudio bíblico regular</span>
+            <span className="text-sm font-medium text-gray-700">Se estableció un curso bíblico</span>
           </label>
 
           {formData.isRecurringStudy && (
