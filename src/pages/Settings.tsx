@@ -77,7 +77,7 @@ export default function Settings() {
           <select
               value={language}
               onChange={(e) => setLanguage(e.target.value as Language)}
-              className="text-sm border border-gray-300 rounded-md px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-[#26818E]"
+              className="text-sm border border-gray-300 rounded-md px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-[#f25f22]"
            >
               <option value="es">Español</option>
               <option value="en">English</option>
@@ -97,7 +97,7 @@ export default function Settings() {
         <select
           value={backupReminder}
           onChange={handleReminderChange}
-          className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#26818E]"
+          className="w-full text-sm border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-[#f25f22]"
         >
           <option value="monthly">{t('monthly')}</option>
           <option value="3months">{t('threeMonths')}</option>
@@ -125,7 +125,7 @@ export default function Settings() {
           
           <button
             onClick={handleImportClick}
-            className="flex items-center justify-center py-3 px-4 border border-[#26818E] text-[#26818E] rounded-lg text-sm font-medium bg-white hover:bg-blue-50"
+            className="flex items-center justify-center py-3 px-4 border border-[#f25f22] text-[#f25f22] rounded-lg text-sm font-medium bg-white hover:bg-blue-50"
           >
             <Upload className="mr-2" size={18} />
             {t('importData')}

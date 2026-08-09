@@ -202,7 +202,7 @@ export default function VisitForm() {
             required
             value={formData.name}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#26818E]"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#f25f22]"
             placeholder={t('nameInputPlaceholder')}
           />
         </div>
@@ -217,7 +217,7 @@ export default function VisitForm() {
             timeIntervals={15}
             timeCaption="Hora"
             dateFormat="d MMMM yyyy, h:mm aa"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#26818E]"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#f25f22]"
             required
           />
         </div>
@@ -230,7 +230,7 @@ export default function VisitForm() {
               type="button"
               onClick={handleGetLocation}
               disabled={isLocating}
-              className="flex items-center justify-center w-full px-4 py-2 bg-[#26818E] hover:bg-[#1d616a] text-white rounded-md text-sm font-medium transition-colors"
+              className="flex items-center justify-center w-full px-4 py-2 bg-[#f25f22] hover:bg-[#d94a12] text-white rounded-md text-sm font-medium transition-colors"
             >
               <MapPin size={16} className="mr-2" />
               {isLocating ? t('gettingLocation') : t('getLocation')}
@@ -246,7 +246,7 @@ export default function VisitForm() {
                 value={googleMapsLink}
                 onChange={(e) => setGoogleMapsLink(e.target.value)}
                 placeholder={t('googleMapsLinkPlaceholder')}
-                className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#26818E]"
+                className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#f25f22]"
               />
               <button
                 type="button"
@@ -273,7 +273,7 @@ export default function VisitForm() {
                 <button
                    type="button"
                    onClick={() => setIsMapFullscreen(true)}
-                   className="absolute bottom-4 right-4 z-[400] bg-white p-3 rounded-full shadow-lg border border-gray-300 text-[#26818E] hover:bg-gray-50 flex items-center justify-center"
+                   className="absolute bottom-6 right-6 z-[1000] bg-white p-3 rounded-full shadow-lg border border-gray-300 text-[#f25f22] hover:bg-gray-50 flex items-center justify-center"
                    title={t('toggleFullscreenMap')}
                 >
                    <Maximize size={24} />
@@ -317,7 +317,7 @@ export default function VisitForm() {
             name="houseDescription"
             value={formData.houseDescription || ''}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#26818E]"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#f25f22]"
             placeholder={t('houseDescriptionPlaceholder')}
           />
         </div>
@@ -329,7 +329,7 @@ export default function VisitForm() {
             rows={3}
             value={formData.generalNotes || ''}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#26818E]"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#f25f22]"
             placeholder={t('notesPlaceholder')}
           />
         </div>
@@ -340,7 +340,7 @@ export default function VisitForm() {
             name="interestLevel"
             value={formData.interestLevel}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#26818E]"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#f25f22]"
           >
             <option value="Bajo">{t('low')}</option>
             <option value="Medio">{t('medium')}</option>
@@ -358,7 +358,7 @@ export default function VisitForm() {
             timeIntervals={15}
             timeCaption={t('time')}
             dateFormat="d MMMM yyyy, h:mm aa"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#26818E]"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#f25f22]"
             isClearable
             placeholderText={t('selectDateAndTime')}
           />
@@ -371,7 +371,7 @@ export default function VisitForm() {
               name="isRecurringStudy"
               checked={formData.isRecurringStudy}
               onChange={handleChange}
-              className="mr-2 h-4 w-4 text-[#26818E] focus:ring-[#26818E] border-gray-300 rounded"
+              className="mr-2 h-4 w-4 text-[#f25f22] focus:ring-[#f25f22] border-gray-300 rounded"
             />
             <span className="text-sm font-medium text-gray-700">{t('establishedBibleCourse')}</span>
           </label>
@@ -384,7 +384,7 @@ export default function VisitForm() {
                   name="recurringStudyDayOfWeek"
                   value={formData.recurringStudyDayOfWeek || 0}
                   onChange={handleChange}
-                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#26818E]"
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#f25f22]"
                 >
                   <option value="0">{t('sunday')}</option>
                   <option value="1">{t('monday')}</option>
@@ -402,7 +402,7 @@ export default function VisitForm() {
                   name="recurringStudyTime"
                   value={formData.recurringStudyTime || '10:00'}
                   onChange={handleChange}
-                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#26818E]"
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#f25f22]"
                 />
               </div>
             </div>
@@ -411,7 +411,7 @@ export default function VisitForm() {
 
         <button
           type="submit"
-          className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-[#26818E] hover:bg-[#1d616a] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#26818E] mt-6"
+          className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-[#f25f22] hover:bg-[#d94a12] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#f25f22] mt-6"
         >
           <Save size={20} className="mr-2" />
           {t('saveRecord')}

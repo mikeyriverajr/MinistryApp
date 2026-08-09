@@ -305,7 +305,7 @@ END:VCALENDAR`;
                     <select
                       value={newScheduleDay}
                       onChange={(e) => setNewScheduleDay(Number(e.target.value))}
-                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#26818E]"
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#f25f22]"
                     >
                       <option value="0">{t('sunday')}</option>
                       <option value="1">{t('monday')}</option>
@@ -319,7 +319,7 @@ END:VCALENDAR`;
                       type="time"
                       value={newScheduleTime}
                       onChange={(e) => setNewScheduleTime(e.target.value)}
-                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#26818E]"
+                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#f25f22]"
                     />
                   </div>
                   <div className="flex justify-end space-x-2 pt-2 border-t border-gray-100">
@@ -337,7 +337,7 @@ END:VCALENDAR`;
                     </button>
                     <button
                       onClick={() => handleScheduleChange(false)}
-                      className="text-xs px-2 py-1 bg-[#26818E] text-white hover:bg-[#1d616a] rounded font-medium"
+                      className="text-xs px-2 py-1 bg-[#f25f22] text-white hover:bg-[#d94a12] rounded font-medium"
                     >
                       {t('allFutureEvents')}
                     </button>
@@ -365,7 +365,7 @@ END:VCALENDAR`;
           <h3 className="text-lg font-bold text-gray-800">{t('visitHistory')}</h3>
           <button
             onClick={() => setShowAddVisit(!showAddVisit)}
-            className="flex items-center text-sm bg-[#26818E] text-white px-3 py-1.5 rounded-lg hover:bg-[#1d616a] font-medium transition-colors"
+            className="flex items-center text-sm bg-[#f25f22] text-white px-3 py-1.5 rounded-lg hover:bg-[#d94a12] font-medium transition-colors"
           >
             <Plus size={16} className="mr-1" />
             {t('newVisit')}
@@ -384,7 +384,7 @@ END:VCALENDAR`;
                 timeIntervals={15}
                 timeCaption={t('time')}
                 dateFormat="d MMMM yyyy, h:mm aa"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#26818E]"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#f25f22]"
               />
             </div>
             <div>
@@ -393,7 +393,7 @@ END:VCALENDAR`;
                 value={newVisitNotes}
                 onChange={(e) => setNewVisitNotes(e.target.value)}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#26818E]"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#f25f22]"
                 placeholder={t('visitNotesPlaceholder')}
               />
             </div>
@@ -416,7 +416,7 @@ END:VCALENDAR`;
                           alert(t('startedBibleCourse'));
                         }
                       }}
-                      className="mr-2 h-4 w-4 text-[#26818E] focus:ring-[#26818E] border-gray-300 rounded"
+                      className="mr-2 h-4 w-4 text-[#f25f22] focus:ring-[#f25f22] border-gray-300 rounded"
                     />
                     <span className="text-sm font-medium text-gray-700">{t('establishedBibleCourse')}</span>
                  </label>
@@ -432,7 +432,7 @@ END:VCALENDAR`;
               </button>
               <button
                 onClick={handleAddFollowUp}
-                className="px-4 py-2 flex items-center text-sm font-medium text-white bg-[#26818E] hover:bg-[#1d616a] rounded-md"
+                className="px-4 py-2 flex items-center text-sm font-medium text-white bg-[#f25f22] hover:bg-[#d94a12] rounded-md"
               >
                 <Save size={16} className="mr-1.5" />
                 {t('save')}
