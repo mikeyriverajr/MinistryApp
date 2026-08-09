@@ -259,12 +259,12 @@ export default function VisitForm() {
             {linkError && <p className="text-xs text-red-500 mt-1">{linkError}</p>}
           </div>
 
-          <div className={`w-full rounded-md overflow-hidden border border-gray-300 relative z-0 transition-all ${isMapFullscreen ? 'fixed inset-0 z-[1000] h-screen' : 'h-48'}`}>
+          <div className={`w-full rounded-md overflow-hidden border border-gray-300 relative transition-all ${isMapFullscreen ? 'fixed top-0 left-0 right-0 bottom-0 z-[1000] h-screen w-screen m-0 rounded-none bg-white' : 'h-48 z-0'}`}>
              {isMapFullscreen && (
                 <button
                    type="button"
                    onClick={() => setIsMapFullscreen(false)}
-                   className="absolute top-4 right-4 z-[2000] bg-white p-2 rounded-full shadow-lg text-gray-800 hover:bg-gray-100"
+                   className="absolute top-4 right-4 z-[2000] bg-white p-3 rounded-full shadow-lg text-gray-800 hover:bg-gray-100 flex items-center justify-center border border-gray-300"
                 >
                    <Minimize size={24} />
                 </button>
@@ -273,10 +273,10 @@ export default function VisitForm() {
                 <button
                    type="button"
                    onClick={() => setIsMapFullscreen(true)}
-                   className="absolute bottom-4 right-4 z-[400] bg-white p-2 rounded-full shadow-lg border border-gray-200 text-[#26818E] hover:bg-gray-50"
+                   className="absolute bottom-4 right-4 z-[400] bg-white p-3 rounded-full shadow-lg border border-gray-300 text-[#26818E] hover:bg-gray-50 flex items-center justify-center"
                    title={t('toggleFullscreenMap')}
                 >
-                   <Maximize size={20} />
+                   <Maximize size={24} />
                 </button>
              )}
              <MapContainer center={mapCenter} zoom={15} style={{ height: '100%', width: '100%' }}>
