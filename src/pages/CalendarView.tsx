@@ -98,7 +98,7 @@ export default function CalendarView() {
             {!isTodaySelected && (
               <button
                 onClick={handleGoToToday}
-                className="text-xs text-[#26818E] hover:text-[#1d616a] font-medium absolute top-[-10px] right-0 bg-blue-50 px-2 py-1 rounded shadow-sm border border-blue-100"
+                className="text-xs text-[#f25f22] hover:text-[#d94a12] font-medium absolute top-[-10px] right-0 bg-blue-50 px-2 py-1 rounded shadow-sm border border-blue-100"
               >
                 {t('goToToday', { defaultValue: 'Hoy' })}
               </button>
@@ -120,8 +120,8 @@ export default function CalendarView() {
                 key={day.toString()}
                 onClick={() => setSelectedDate(day)}
                 className={`flex flex-col items-center p-2 rounded-lg min-w-[40px] relative ${
-                  isSelected ? 'bg-[#26818E] text-white shadow-md' : 'text-gray-600 hover:bg-gray-200'
-                } ${isTodayReal && !isSelected ? 'ring-2 ring-[#26818E] ring-inset' : ''}`}
+                  isSelected ? 'bg-[#f25f22] text-white shadow-md' : 'text-gray-600 hover:bg-gray-200'
+                } ${isTodayReal && !isSelected ? 'ring-2 ring-[#f25f22] ring-inset' : ''}`}
               >
                 <span className="text-xs font-medium uppercase mb-1">
                   {format(day, 'E', { locale }).substring(0, 3)}
@@ -130,7 +130,7 @@ export default function CalendarView() {
                   {format(day, 'd')}
                 </span>
                 {hasEvents && !isSelected && (
-                  <span className="w-1.5 h-1.5 bg-[#26818E] rounded-full mt-1"></span>
+                  <span className="w-1.5 h-1.5 bg-[#f25f22] rounded-full mt-1"></span>
                 )}
               </button>
             );
@@ -174,7 +174,7 @@ export default function CalendarView() {
                  (event.customDates && event.customDates.some(d => isSameDay(new Date(d.newDate), selectedDate))));
 
               return (
-                <div key={event.id} className="bg-white p-4 rounded-xl shadow-sm border border-l-4 border-l-[#26818E] flex justify-between items-center">
+                <div key={event.id} className="bg-white p-4 rounded-xl shadow-sm border border-l-4 border-l-[#f25f22] flex justify-between items-center">
                   <div>
                     <h4 className="font-bold text-gray-800">{event.name}</h4>
                     <p className="text-sm text-gray-500">{event.houseDescription}</p>
@@ -185,7 +185,7 @@ export default function CalendarView() {
                     )}
                   </div>
                   <div className="text-right">
-                    <span className="text-lg font-bold text-[#26818E]">{time}</span>
+                    <span className="text-lg font-bold text-[#f25f22]">{time}</span>
                   </div>
                 </div>
               );

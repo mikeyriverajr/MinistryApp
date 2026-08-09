@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Map as MapIcon, Calendar, Settings, PlusCircle } from 'lucide-react';
+import { Home, Users, Calendar, Settings, PlusCircle } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 export default function Navigation() {
@@ -7,7 +7,7 @@ export default function Navigation() {
 
   const navItems = [
     { to: '/', icon: Home, label: t('navDashboard') },
-    { to: '/map', icon: MapIcon, label: t('navMap') },
+    { to: '/personas', icon: Users, label: t('interestedPersons') },
     { to: '/add', icon: PlusCircle, label: t('registerNewVisit').split(' ')[0] },
     { to: '/calendar', icon: Calendar, label: t('navCalendar') },
     { to: '/settings', icon: Settings, label: t('navSettings') },
@@ -22,7 +22,7 @@ export default function Navigation() {
               to={item.to}
               className={({ isActive }) =>
                 `flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
-                  isActive ? 'text-[#26818E]' : 'text-gray-500 hover:text-[#26818E]'
+                  isActive ? 'text-[#f25f22]' : 'text-gray-500 hover:text-[#f25f22]'
                 }`
               }
             >

@@ -6,10 +6,10 @@ export const translations = {
     save: "Guardar",
     delete: "Eliminar",
     edit: "Editar",
-    appTitle: "Mi Ministerio",
+    appTitle: "Morfo",
 
     // Setup Wizard
-    welcome: "Bienvenido a Mi Ministerio",
+    welcome: "Bienvenido a Morfo",
     whatsYourName: "Para comenzar, ¿cómo te llamas?",
     yourName: "Tu Nombre",
     namePlaceholder: "Ej. Juan Pérez",
@@ -36,7 +36,7 @@ export const translations = {
     sortInterest: "Interés (Alto a Bajo)",
     sortNextVisit: "Próxima Visita",
     noRecordsFound: "No se encontraron registros.",
-    found: "Hallado",
+    found: "Hallada",
     visit: "Visita",
     withoutNotes: "Sin notas.",
     todaysVisits: "Visitas de Hoy",
@@ -153,10 +153,10 @@ export const translations = {
     save: "Save",
     delete: "Delete",
     edit: "Edit",
-    appTitle: "My Ministry",
+    appTitle: "Morfo",
 
     // Setup Wizard
-    welcome: "Welcome to My Ministry",
+    welcome: "Welcome to Morfo",
     whatsYourName: "To get started, what is your name?",
     yourName: "Your Name",
     namePlaceholder: "e.g. John Doe",
