@@ -112,6 +112,86 @@ export default function PersonRecord() {
     setIsChangingSchedule(false);
   };
 
+  const getNextEventDate = () => {
+    if (!visit) return null;
+    let nextDate: Date | null = null;
+
+    if (visit.nextVisitDate) {
+      nextDate = new Date(visit.nextVisitDate);
+    } else if (visit.isRecurringStudy && visit.recurringStudyTime) {
+      nextDate = new Date();
+      while (nextDate.getDay() !== visit.recurringStudyDayOfWeek) {
+        nextDate.setDate(nextDate.getDate() + 1);
+      }
+      const [h, m] = visit.recurringStudyTime.split(':').map(Number);
+      nextDate.setHours(h, m, 0, 0);
+    }
+
+    // Check for exceptions
+    if (visit.customDates) {
+      const upcomingException = visit.customDates.find(d => new Date(d.newDate) >= new Date());
+      if (upcomingException) {
+        nextDate = new Date(upcomingException.newDate);
+      }
+    }
+    return nextDate;
+  };
+
+  const generateICS = () => {
+    const nextDate = getNextEventDate();
+    if (!nextDate || !visit) return;
+
+    const endDate = new Date(nextDate.getTime() + 60 * 60 * 1000); // 1 hour duration
+
+    const formatDate = (date: Date) => {
+      return date.toISOString().replace(/-|:|\.\d+/g, '');
+    };
+
+    const icsContent = `BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+DTSTART:${formatDate(nextDate)}
+DTEND:${formatDate(endDate)}
+SUMMARY:Visita: ${visit.name}
+DESCRIPTION:${visit.generalNotes || visit.houseDescription || ''}
+LOCATION:${visit.latitude ? `${visit.latitude},${visit.longitude}` : ''}
+END:VEVENT
+END:VCALENDAR`;
+
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `visita_${visit.name}.ics`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const openGoogleCalendar = () => {
+    const nextDate = getNextEventDate();
+    if (!nextDate || !visit) return;
+
+    const endDate = new Date(nextDate.getTime() + 60 * 60 * 1000); // 1 hour duration
+
+    const formatDate = (date: Date) => {
+      return date.toISOString().replace(/-|:|\.\d+/g, '');
+    };
+
+    const url = new URL('https://calendar.google.com/calendar/render');
+    url.searchParams.append('action', 'TEMPLATE');
+    url.searchParams.append('text', `Visita: ${visit.name}`);
+    url.searchParams.append('dates', `${formatDate(nextDate)}/${formatDate(endDate)}`);
+    url.searchParams.append('details', visit.generalNotes || visit.houseDescription || '');
+    if (visit.latitude && visit.longitude) {
+      url.searchParams.append('location', `${visit.latitude},${visit.longitude}`);
+    }
+
+    window.open(url.toString(), '_blank');
+  };
+
+  const nextEventDate = getNextEventDate();
+
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-20">
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
@@ -137,6 +217,25 @@ export default function PersonRecord() {
             </button>
           </div>
         </div>
+
+        {nextEventDate && (
+          <div className="mb-6 flex flex-wrap gap-2">
+            <button
+              onClick={openGoogleCalendar}
+              className="flex items-center text-xs bg-red-50 text-red-700 px-3 py-1.5 rounded-lg hover:bg-red-100 font-medium transition-colors border border-red-200"
+            >
+              <Calendar size={14} className="mr-1.5" />
+              {t('googleCalendar', { defaultValue: 'Google Calendar' })}
+            </button>
+            <button
+              onClick={generateICS}
+              className="flex items-center text-xs bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-100 font-medium transition-colors border border-blue-200"
+            >
+              <Calendar size={14} className="mr-1.5" />
+              {t('downloadICS', { defaultValue: 'Descargar .ics' })}
+            </button>
+          </div>
+        )}
 
         {visit.latitude && visit.longitude && (
           <div className="mb-4">

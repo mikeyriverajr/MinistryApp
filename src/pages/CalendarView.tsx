@@ -78,16 +78,32 @@ export default function CalendarView() {
     setSelectedDate(prev => addDays(prev, 7));
   };
 
+  const handleGoToToday = () => {
+    setSelectedDate(new Date());
+  };
+
+  const isTodaySelected = isSameDay(selectedDate, new Date());
+
   return (
     <div className="space-y-6">
       <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-center mb-4 relative">
           <button onClick={handlePrevWeek} className="p-1 text-gray-500 hover:text-gray-800">
             <ChevronLeft size={24} />
           </button>
-          <h2 className="text-xl font-bold text-gray-800 capitalize text-center">
-            {format(selectedDate, 'MMMM yyyy', { locale })}
-          </h2>
+          <div className="flex flex-col items-center justify-center">
+            <h2 className="text-xl font-bold text-gray-800 capitalize text-center">
+              {format(selectedDate, 'MMMM yyyy', { locale })}
+            </h2>
+            {!isTodaySelected && (
+              <button
+                onClick={handleGoToToday}
+                className="text-xs text-[#26818E] hover:text-[#1d616a] font-medium absolute top-[-10px] right-0 bg-blue-50 px-2 py-1 rounded shadow-sm border border-blue-100"
+              >
+                {t('goToToday', { defaultValue: 'Hoy' })}
+              </button>
+            )}
+          </div>
           <button onClick={handleNextWeek} className="p-1 text-gray-500 hover:text-gray-800">
             <ChevronRight size={24} />
           </button>
@@ -96,15 +112,16 @@ export default function CalendarView() {
         <div className="flex justify-between items-center bg-gray-50 p-2 rounded-lg">
           {weekDays.map(day => {
             const isSelected = isSameDay(day, selectedDate);
+            const isTodayReal = isSameDay(day, new Date());
             const hasEvents = getEventsForDate(day).length > 0;
             
             return (
               <button
                 key={day.toString()}
                 onClick={() => setSelectedDate(day)}
-                className={`flex flex-col items-center p-2 rounded-lg min-w-[40px] ${
+                className={`flex flex-col items-center p-2 rounded-lg min-w-[40px] relative ${
                   isSelected ? 'bg-[#26818E] text-white shadow-md' : 'text-gray-600 hover:bg-gray-200'
-                }`}
+                } ${isTodayReal && !isSelected ? 'ring-2 ring-[#26818E] ring-inset' : ''}`}
               >
                 <span className="text-xs font-medium uppercase mb-1">
                   {format(day, 'E', { locale }).substring(0, 3)}

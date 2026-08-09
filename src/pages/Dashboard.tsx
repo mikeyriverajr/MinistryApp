@@ -227,9 +227,9 @@ export default function Dashboard() {
                    <div key={`today-${visit.id}`} onClick={() => navigate(`/person/${visit.id}`)} className="bg-blue-50 border border-blue-100 p-3 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors flex justify-between items-center">
                      <div>
                        <h4 className="font-bold text-blue-900">{visit.name}</h4>
-                       <p className="text-xs text-blue-700 mt-1">{visit.houseDescription || t('withoutNotes')}</p>
+                       <p className="text-xs text-blue-700 mt-1 line-clamp-1">{visit.generalNotes || t('withoutNotes')}</p>
                      </div>
-                     <span className="text-blue-800 font-bold bg-white px-2 py-1 rounded shadow-sm text-sm">{timeStr}</span>
+                     <span className="text-blue-800 font-bold bg-white px-2 py-1 rounded shadow-sm text-sm whitespace-nowrap ml-2">{timeStr}</span>
                    </div>
                 );
              })}

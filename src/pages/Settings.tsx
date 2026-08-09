@@ -1,23 +1,14 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState } from 'react';
 import { exportDatabase, importDatabase, db } from '../db/database';
-import { Download, Upload, Bell, CheckCircle, Trash2, Clock } from 'lucide-react';
+import { Download, Upload, CheckCircle, Trash2, Clock } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Language } from '../i18n';
 
 export default function Settings() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importStatus, setImportStatus] = useState<string | null>(null);
-  const [notificationStatus, setNotificationStatus] = useState<NotificationPermission | 'unsupported'>('default');
   const { language, setLanguage, t } = useLanguage();
   const [backupReminder, setBackupReminder] = useState<string>(() => localStorage.getItem('backupReminder') || 'monthly');
-
-  useEffect(() => {
-    if (!('Notification' in window)) {
-      setNotificationStatus('unsupported');
-    } else {
-      setNotificationStatus(Notification.permission);
-    }
-  }, []);
 
   const handleExport = async () => {
     try {
@@ -78,33 +69,6 @@ export default function Settings() {
     }
   };
 
-  const requestNotificationPermission = async () => {
-    if (!('Notification' in window)) {
-      alert('Este navegador no soporta notificaciones de escritorio.');
-      return;
-    }
-
-    const permission = await Notification.requestPermission();
-    setNotificationStatus(permission);
-    
-    if (permission === 'granted') {
-      new Notification('¡Notificaciones activadas!', {
-        body: 'Recibirás recordatorios de tus revisitas y estudios.',
-        icon: '/vite.svg'
-      });
-      // In a real app with a backend, we would subscribe to push notifications here
-      // and register a service worker. For this local PWA, we're setting up the 
-      // foundation for local notifications or future Push API integration.
-      if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.register('/service-worker.js').then(registration => {
-              console.log('SW registered:', registration);
-          }).catch(error => {
-              console.log('SW registration failed:', error);
-          });
-      }
-    }
-  };
-
   return (
     <div className="space-y-6">
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
@@ -120,36 +84,6 @@ export default function Settings() {
            </select>
         </div>
         <p className="text-gray-500 text-sm">{t('manageDataPrefs')}</p>
-      </div>
-
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
-        <h3 className="font-bold text-gray-700 flex items-center border-b pb-2">
-          <Bell className="mr-2" size={20} />
-          {t('notifications')}
-        </h3>
-        
-        <div className="flex justify-between items-center">
-          <div>
-            <p className="text-sm font-medium text-gray-800">{t('visitAlerts')}</p>
-            <p className="text-xs text-gray-500">
-              {notificationStatus === 'granted' ? t('alertsActivated') :
-               notificationStatus === 'denied' ? t('alertsBlocked') :
-               notificationStatus === 'unsupported' ? t('alertsUnsupported') : t('alertsNotConfigured')}
-            </p>
-          </div>
-          
-          <button 
-            onClick={requestNotificationPermission}
-            disabled={notificationStatus === 'granted' || notificationStatus === 'unsupported'}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              notificationStatus === 'granted' 
-                ? 'bg-green-100 text-green-800 cursor-not-allowed'
-                : 'bg-[#26818E] text-white hover:bg-[#1d616a]'
-            }`}
-          >
-            {notificationStatus === 'granted' ? t('alertsActivated') : t('activate')}
-          </button>
-        </div>
       </div>
 
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
