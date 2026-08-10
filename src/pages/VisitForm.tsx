@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Visit } from '../db/database';
-import { MapPin, Save, ArrowLeft, Link as LinkIcon, Maximize, X } from 'lucide-react';
+import { MapPin, Save, ArrowLeft, Check, Maximize, X } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap, LayersControl } from 'react-leaflet';
@@ -61,7 +61,7 @@ export default function VisitForm() {
 
   const { t } = useLanguage();
   const [isLocating, setIsLocating] = useState(false);
-  const [googleMapsLink, setGoogleMapsLink] = useState('');
+  const [coordinatesInput, setCoordinatesInput] = useState('');
   const [linkError, setLinkError] = useState('');
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
@@ -128,13 +128,13 @@ export default function VisitForm() {
     }));
   };
 
-  const handleLinkExtract = () => {
+  const handleCoordinatesApply = () => {
     setLinkError('');
-    if (!googleMapsLink) return;
+    if (!coordinatesInput.trim()) return;
 
-    // Try to extract coordinates from URL like @-25.5134,-54.6111
-    const regex = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
-    const match = googleMapsLink.match(regex);
+    // Try to extract a coordinate pair separated by comma, allowing optional spaces
+    const regex = /(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/;
+    const match = coordinatesInput.match(regex);
 
     if (match && match[1] && match[2]) {
       setFormData(prev => ({
@@ -142,9 +142,9 @@ export default function VisitForm() {
         latitude: parseFloat(match[1]),
         longitude: parseFloat(match[2])
       }));
-      setGoogleMapsLink('');
+      setCoordinatesInput('');
     } else {
-      setLinkError('No se pudieron extraer las coordenadas de este enlace. Por favor, usa un enlace largo que contenga "@lat,lng" o selecciona en el mapa.');
+      setLinkError(t('linkError'));
     }
   };
 
@@ -256,17 +256,18 @@ export default function VisitForm() {
             <div className="flex space-x-2">
               <input
                 type="text"
-                value={googleMapsLink}
-                onChange={(e) => setGoogleMapsLink(e.target.value)}
+                value={coordinatesInput}
+                onChange={(e) => setCoordinatesInput(e.target.value)}
                 placeholder={t('googleMapsLinkPlaceholder')}
                 className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#e07a5f]"
               />
               <button
                 type="button"
-                onClick={handleLinkExtract}
-                className="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md text-sm font-medium"
+                onClick={handleCoordinatesApply}
+                className="px-3 py-2 bg-[#e07a5f] hover:bg-[#c45b42] text-white rounded-md text-sm font-medium transition-colors"
+                title="Aplicar coordenadas"
               >
-                <LinkIcon size={16} />
+                <Check size={16} />
               </button>
             </div>
             {linkError && <p className="text-xs text-red-500 mt-1">{linkError}</p>}

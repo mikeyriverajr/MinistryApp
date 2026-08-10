@@ -1,15 +1,17 @@
 import { useRef, useState } from 'react';
 import { exportDatabase, importDatabase, db } from '../db/database';
-import { Download, Upload, CheckCircle, Trash2, Clock } from 'lucide-react';
+import { Download, Upload, Trash2, Clock, AlertTriangle, X } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Language } from '../i18n';
 import { toast } from 'react-hot-toast';
 
 export default function Settings() {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [importStatus, setImportStatus] = useState<string | null>(null);
   const { language, setLanguage, t } = useLanguage();
   const [backupReminder, setBackupReminder] = useState<string>(() => localStorage.getItem('backupReminder') || 'monthly');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [pendingImportFile, setPendingImportFile] = useState<File | null>(null);
 
   const handleExport = async () => {
     try {
@@ -29,16 +31,15 @@ export default function Settings() {
   };
 
   const handleDeleteAll = async () => {
-    if (window.confirm(t('deleteAllWarningText') + '\n\n' + t('confirmDeleteAll'))) {
-      try {
-        await db.delete();
-        localStorage.clear();
-        toast.success(t('dataDeleted'));
-        setTimeout(() => window.location.reload(), 1500);
-      } catch (error) {
-        console.error('Error deleting data', error);
-        toast.error('Error eliminando datos');
-      }
+    setShowDeleteModal(false);
+    try {
+      await db.delete();
+      localStorage.clear();
+      toast.success(t('dataDeleted'));
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (error) {
+      console.error('Error deleting data', error);
+      toast.error('Error eliminando datos');
     }
   };
 
@@ -46,30 +47,46 @@ export default function Settings() {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!confirm(t('importWarning'))) {
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      return;
-    }
+    setPendingImportFile(file);
+    setShowImportModal(true);
+  };
+
+  const confirmImport = async () => {
+    if (!pendingImportFile) return;
+
+    setShowImportModal(false);
+
+    const importPromise = importDatabase(pendingImportFile);
+
+    toast.promise(importPromise, {
+      loading: t('importing'),
+      success: () => {
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+        return t('importSuccess');
+      },
+      error: t('importError')
+    });
 
     try {
-      setImportStatus(t('importing'));
-      await importDatabase(file);
-      setImportStatus(t('importSuccess'));
-      setTimeout(() => {
-        setImportStatus(null);
-        window.location.reload();
-      }, 2000);
+      await importPromise;
     } catch (error) {
       console.error('Error al importar:', error);
-      setImportStatus(t('importError'));
-      setTimeout(() => setImportStatus(null), 3000);
     } finally {
+      setPendingImportFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
+  };
+
+  const cancelImport = () => {
+    setShowImportModal(false);
+    setPendingImportFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   return (
@@ -142,18 +159,9 @@ export default function Settings() {
           />
         </div>
         
-        {importStatus && (
-          <div className={`mt-4 p-3 rounded-md flex items-center justify-center text-sm ${
-            importStatus.includes('exitos') || importStatus.includes('success') ? 'bg-green-50 text-green-700' : 'bg-blue-50 text-blue-800'
-          }`}>
-            {(importStatus.includes('exitos') || importStatus.includes('success')) && <CheckCircle size={16} className="mr-2" />}
-            {importStatus}
-          </div>
-        )}
-
         <div className="pt-4 border-t border-gray-100 mt-4">
           <button
-            onClick={handleDeleteAll}
+            onClick={() => setShowDeleteModal(true)}
             className="flex items-center justify-center w-full py-3 px-4 border border-red-200 rounded-lg text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100"
           >
             <Trash2 className="mr-2" size={18} />
@@ -161,6 +169,81 @@ export default function Settings() {
           </button>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+          <div className="bg-white rounded-xl shadow-lg max-w-sm w-full overflow-hidden">
+            <div className="flex justify-between items-center p-4 border-b border-gray-100">
+              <div className="flex items-center text-red-600">
+                <AlertTriangle size={20} className="mr-2" />
+                <h3 className="font-bold">{t('deleteAllData')}</h3>
+              </div>
+              <button onClick={() => setShowDeleteModal(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <p className="text-sm text-gray-700 font-medium">
+                {t('deleteAllWarningText')}
+              </p>
+              <p className="text-sm text-gray-500">
+                {t('confirmDeleteAll')}
+              </p>
+            </div>
+            <div className="flex border-t border-gray-100">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="flex-1 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50"
+              >
+                {t('cancel')}
+              </button>
+              <button
+                onClick={handleDeleteAll}
+                className="flex-1 py-3 text-sm font-medium text-white bg-red-600 hover:bg-red-700"
+              >
+                {t('delete')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Import Confirmation Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+          <div className="bg-white rounded-xl shadow-lg max-w-sm w-full overflow-hidden">
+            <div className="flex justify-between items-center p-4 border-b border-gray-100">
+              <div className="flex items-center text-[#e07a5f]">
+                <Upload size={20} className="mr-2" />
+                <h3 className="font-bold">{t('importData')}</h3>
+              </div>
+              <button onClick={cancelImport} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-4">
+              <p className="text-sm text-gray-700 font-medium">
+                {t('importWarning')}
+              </p>
+            </div>
+            <div className="flex border-t border-gray-100">
+              <button
+                onClick={cancelImport}
+                className="flex-1 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50"
+              >
+                {t('cancel')}
+              </button>
+              <button
+                onClick={confirmImport}
+                className="flex-1 py-3 text-sm font-medium text-white bg-[#e07a5f] hover:bg-[#c45b42]"
+              >
+                {t('importData')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
