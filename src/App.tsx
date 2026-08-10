@@ -12,7 +12,7 @@ import Settings from './pages/Settings';
 import PersonRecord from './pages/PersonRecord';
 import InterestedPersons from './pages/InterestedPersons';
 import { useLanguage } from './contexts/LanguageContext';
-import { Bug } from 'lucide-react'; // Using Bug as a generic butterfly/insect stand-in for now
+import { ButterflyIcon } from './components/ButterflyIcon';
 
 function App() {
   const [isInitializing, setIsInitializing] = useState(true);
@@ -32,9 +32,9 @@ function App() {
 
   if (isInitializing || userProfile === undefined || showSplash) {
     return (
-      <div className="min-h-screen bg-[#f25f22] flex flex-col items-center justify-center text-white">
+      <div className="min-h-screen bg-slate-800 flex flex-col items-center justify-center text-[#e07a5f]">
         <div className="animate-pulse flex flex-col items-center">
-          <Bug size={80} className="mb-4" />
+          <ButterflyIcon size={80} className="mb-4" />
           <h1 className="text-4xl font-bold tracking-wider">Morfo</h1>
         </div>
       </div>
@@ -45,8 +45,8 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-gray-100 flex flex-col">
-        <header className="bg-[#f25f22] text-white p-4 text-center font-bold text-xl sticky top-0 z-50 shadow-md">
+      <div className="min-h-screen bg-slate-50 flex flex-col">
+        <header className="bg-slate-800 border-b-2 border-[#e07a5f] text-white p-4 text-center font-bold text-xl sticky top-0 z-50 shadow-md">
           {t('appTitle')}
         </header>
         

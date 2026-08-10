@@ -129,7 +129,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
-          <Users className="text-[#f25f22] mb-2" size={32} />
+          <Users className="text-[#e07a5f] mb-2" size={32} />
           <span className="text-3xl font-bold text-gray-800">{totalVisits}</span>
           <span className="text-sm text-gray-500">{t('records')}</span>
         </div>
@@ -143,7 +143,7 @@ export default function Dashboard() {
       <div className="flex flex-col space-y-3">
         <Link 
           to="/add" 
-          className="bg-[#f25f22] text-white text-center py-3 rounded-lg font-medium shadow-sm hover:bg-[#d94a12] transition-colors"
+          className="bg-[#e07a5f] text-white text-center py-3 rounded-lg font-medium shadow-sm hover:bg-[#c45b42] transition-colors"
         >
           {t('registerNewVisit')}
         </Link>

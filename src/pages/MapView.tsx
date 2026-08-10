@@ -68,11 +68,11 @@ export default function MapView() {
 
   return (
     <div className="absolute inset-0 z-50 bg-gray-100 flex flex-col">
-      <div className="bg-[#f25f22] text-white p-4 shadow-md flex justify-between items-center">
+      <div className="bg-slate-800 border-b border-[#e07a5f] text-white p-4 shadow-md flex justify-between items-center">
         <h2 className="font-bold text-lg">{t('territoryMap')}</h2>
         <button
           onClick={() => navigate('/')}
-          className="p-1.5 hover:bg-[#d94a12] rounded-full transition-colors"
+          className="p-1.5 hover:bg-slate-700 rounded-full transition-colors"
         >
           <X size={24} />
         </button>
@@ -81,7 +81,7 @@ export default function MapView() {
       <div className="flex-1 w-full relative">
         <button
           onClick={handleCenterOnUser}
-          className="absolute bottom-6 right-6 z-[400] bg-white p-3 rounded-full shadow-lg border border-gray-200 text-[#f25f22] hover:bg-gray-50 transition-colors"
+          className="absolute bottom-6 right-6 z-[400] bg-white p-3 rounded-full shadow-lg border border-gray-200 text-[#e07a5f] hover:bg-gray-50 transition-colors"
           title={t('myLocation')}
         >
           <Crosshair size={24} />
@@ -134,14 +134,14 @@ export default function MapView() {
                     {t('interest')}: <span className="font-medium ml-1">{visit.interestLevel === 'Alto' ? t('high') : visit.interestLevel === 'Medio' ? t('medium') : t('low')}</span>
                   </p>
                   {visit.nextVisitDate && (
-                    <p className="text-xs text-[#f25f22] mt-1 font-medium">
+                    <p className="text-xs text-[#e07a5f] mt-1 font-medium">
                       {t('visit')}: {new Date(visit.nextVisitDate).toLocaleDateString()}
                     </p>
                   )}
                   <div className="flex flex-col space-y-2 mt-4 pt-3 border-t border-gray-100">
                     <button
                       onClick={() => navigate(`/person/${visit.id}`)}
-                      className="flex items-center justify-center w-full px-3 py-1.5 bg-[#f25f22] text-white rounded-md text-sm font-medium hover:bg-[#d94a12]"
+                      className="flex items-center justify-center w-full px-3 py-1.5 bg-[#e07a5f] text-white rounded-md text-sm font-medium hover:bg-[#c45b42]"
                     >
                       <Eye size={14} className="mr-1.5" />
                       {t('openRecord')}
