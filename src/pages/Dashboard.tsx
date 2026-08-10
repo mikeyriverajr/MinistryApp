@@ -113,7 +113,7 @@ export default function Dashboard() {
       {showBackupReminder && (
         <div className="bg-blue-50 p-4 rounded-xl shadow-sm border border-blue-100 flex items-start justify-between">
           <div>
-            <h4 className="font-bold text-blue-800 text-sm">Recordatorio de Copia de Seguridad</h4>
+            <h4 className="font-bold text-blue-700 text-sm">Recordatorio de Copia de Seguridad</h4>
             <p className="text-xs text-blue-600 mt-1">Hace tiempo que no haces una copia de tus registros.</p>
           </div>
           <Link to="/settings" className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 font-medium transition-colors">
@@ -123,19 +123,19 @@ export default function Dashboard() {
       )}
 
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-        <h2 className="text-2xl font-bold text-gray-800">{t('hello', { name })}</h2>
+        <h2 className="text-2xl font-bold text-gray-700">{t('hello', { name })}</h2>
         <p className="text-gray-500 mt-1">{t('ministrySummary')}</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
           <Users className="text-[#e07a5f] mb-2" size={32} />
-          <span className="text-3xl font-bold text-gray-800">{totalVisits}</span>
+          <span className="text-3xl font-bold text-gray-700">{totalVisits}</span>
           <span className="text-sm text-gray-500">{t('records')}</span>
         </div>
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
           <BookOpen className="text-green-600 mb-2" size={32} />
-          <span className="text-3xl font-bold text-gray-800">{cursosBiblicos}</span>
+          <span className="text-3xl font-bold text-gray-700">{cursosBiblicos}</span>
           <span className="text-sm text-gray-500">{t('bibleCourses')}</span>
         </div>
       </div>
@@ -150,7 +150,7 @@ export default function Dashboard() {
       </div>
 
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-        <h3 className="text-lg font-bold text-gray-800 mb-4">{t('todaysVisits')}</h3>
+        <h3 className="text-lg font-bold text-gray-700 mb-4">{t('todaysVisits')}</h3>
         {todaysVisits.length === 0 ? (
            <p className="text-gray-500 text-sm">{t('noVisitsToday')}</p>
         ) : (
@@ -187,7 +187,7 @@ export default function Dashboard() {
                        <h4 className="font-bold text-blue-900">{visit.name}</h4>
                        <p className="text-xs text-blue-700 mt-1 line-clamp-1">{visit.generalNotes || t('withoutNotes')}</p>
                      </div>
-                     <span className="text-blue-800 font-bold bg-white px-2 py-1 rounded shadow-sm text-sm whitespace-nowrap ml-2">{timeStr}</span>
+                     <span className="text-blue-700 font-bold bg-white px-2 py-1 rounded shadow-sm text-sm whitespace-nowrap ml-2">{timeStr}</span>
                    </div>
                 );
              })}

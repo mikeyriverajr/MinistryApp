@@ -196,10 +196,10 @@ END:VCALENDAR`;
     <div className="max-w-2xl mx-auto space-y-6 pb-20">
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <div className="flex items-center mb-6">
-          <button onClick={() => navigate(-1)} className="mr-3 text-gray-500 hover:text-gray-800">
+          <button onClick={() => navigate(-1)} className="mr-3 text-gray-500 hover:text-gray-700">
             <ArrowLeft size={24} />
           </button>
-          <h2 className="text-2xl font-bold text-gray-800 flex-1">{visit.name}</h2>
+          <h2 className="text-2xl font-bold text-gray-700 flex-1">{visit.name}</h2>
           <div className="flex space-x-2">
             <button
               onClick={() => navigate(`/edit/${personId}`)}
@@ -252,24 +252,24 @@ END:VCALENDAR`;
         <div className="space-y-4">
           <div>
             <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('houseDescription')}</h3>
-            <p className="text-gray-800 bg-gray-50 p-3 rounded-lg border border-gray-100">{visit.houseDescription || t('noDescription')}</p>
+            <p className="text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-100">{visit.houseDescription || t('noDescription')}</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('interestLevel')}</h3>
-              <p className="text-gray-800 font-medium">{visit.interestLevel === 'Alto' ? t('high') : visit.interestLevel === 'Medio' ? t('medium') : t('low')}</p>
+              <p className="text-gray-700 font-medium">{visit.interestLevel === 'Alto' ? t('high') : visit.interestLevel === 'Medio' ? t('medium') : t('low')}</p>
             </div>
             <div>
               <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('bibleCourse')}</h3>
-              <p className="text-gray-800 font-medium">{visit.isRecurringStudy ? t('yes') : t('no')}</p>
+              <p className="text-gray-700 font-medium">{visit.isRecurringStudy ? t('yes') : t('no')}</p>
             </div>
           </div>
 
           {visit.isRecurringStudy && (
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
               <div className="flex justify-between items-center mb-2">
-                <h3 className="text-xs font-semibold text-blue-800 uppercase tracking-wider flex items-center">
+                <h3 className="text-xs font-semibold text-blue-700 uppercase tracking-wider flex items-center">
                   <Calendar size={14} className="mr-1" />
                   {t('regularTime')}
                 </h3>
@@ -347,7 +347,7 @@ END:VCALENDAR`;
 
               {visit.customDates && visit.customDates.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-blue-200">
-                  <h4 className="text-xs font-semibold text-blue-800 mb-1">{t('exceptionDate')}</h4>
+                  <h4 className="text-xs font-semibold text-blue-700 mb-1">{t('exceptionDate')}</h4>
                   {visit.customDates.filter(d => new Date(d.newDate) >= new Date()).map((d, i) => (
                     <div key={i} className="text-sm text-blue-900 bg-white px-2 py-1 rounded inline-block mr-2 mb-2 border border-blue-100">
                       {new Date(d.newDate).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -362,7 +362,7 @@ END:VCALENDAR`;
 
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-gray-800">{t('visitHistory')}</h3>
+          <h3 className="text-lg font-bold text-gray-700">{t('visitHistory')}</h3>
           <button
             onClick={() => setShowAddVisit(!showAddVisit)}
             className="flex items-center text-sm bg-[#e07a5f] text-white px-3 py-1.5 rounded-lg hover:bg-[#c45b42] font-medium transition-colors"
@@ -450,7 +450,7 @@ END:VCALENDAR`;
             </div>
             <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
               <div className="flex justify-between items-start mb-2">
-                <span className="font-semibold text-gray-800">{t('initialVisit')}</span>
+                <span className="font-semibold text-gray-700">{t('initialVisit')}</span>
                 <span className="text-xs text-gray-500 font-medium bg-gray-100 px-2 py-1 rounded">
                   {new Date(visit.dateFound).toLocaleDateString()}
                 </span>
@@ -466,7 +466,7 @@ END:VCALENDAR`;
               </div>
               <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                 <div className="flex justify-between items-start mb-2">
-                  <span className="font-semibold text-gray-800">{t('returnVisit')}</span>
+                  <span className="font-semibold text-gray-700">{t('returnVisit')}</span>
                   <span className="text-xs text-gray-500 font-medium bg-gray-100 px-2 py-1 rounded">
                     {new Date(followUp.date).toLocaleDateString()}
                   </span>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Visit } from '../db/database';
-import { MapPin, Save, ArrowLeft, Link as LinkIcon, Maximize, Minimize } from 'lucide-react';
+import { MapPin, Save, ArrowLeft, Link as LinkIcon, Maximize, X } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap, LayersControl } from 'react-leaflet';
@@ -30,11 +30,20 @@ function LocationMarker({ position, setPosition }: { position: [number, number] 
   );
 }
 
-function MapUpdater({ center }: { center: [number, number] }) {
+function MapUpdater({ center, isFullscreen }: { center: [number, number], isFullscreen?: boolean }) {
   const map = useMap();
   useEffect(() => {
     map.setView(center, map.getZoom());
   }, [center, map]);
+
+  useEffect(() => {
+    // Invalidate size when fullscreen mode toggles so the map center is recalculated correctly
+    setTimeout(() => {
+      map.invalidateSize();
+      map.setView(center, map.getZoom());
+    }, 100);
+  }, [isFullscreen, map, center]);
+
   return null;
 }
 
@@ -187,10 +196,10 @@ export default function VisitForm() {
   return (
     <div className="max-w-md mx-auto bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
       <div className="flex items-center mb-6">
-        <button type="button" onClick={() => navigate(-1)} className="mr-3 text-gray-500 hover:text-gray-800">
+        <button type="button" onClick={() => navigate(-1)} className="mr-3 text-gray-500 hover:text-gray-700">
           <ArrowLeft size={24} />
         </button>
-        <h2 className="text-2xl font-bold text-gray-800">{isEditing ? t('editRecord') : t('newRecord')}</h2>
+        <h2 className="text-2xl font-bold text-gray-700">{isEditing ? t('editRecord') : t('newRecord')}</h2>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
@@ -251,7 +260,7 @@ export default function VisitForm() {
               <button
                 type="button"
                 onClick={handleLinkExtract}
-                className="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md text-sm font-medium"
+                className="px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md text-sm font-medium"
               >
                 <LinkIcon size={16} />
               </button>
@@ -259,14 +268,14 @@ export default function VisitForm() {
             {linkError && <p className="text-xs text-red-500 mt-1">{linkError}</p>}
           </div>
 
-          <div className={`w-full rounded-md overflow-hidden border border-gray-300 relative transition-all ${isMapFullscreen ? 'fixed top-0 left-0 right-0 bottom-0 z-[1000] h-screen w-screen m-0 rounded-none bg-white' : 'h-48 z-0'}`}>
+          <div className={isMapFullscreen ? 'fixed inset-0 z-[99999] bg-white m-0 p-0 rounded-none w-screen h-screen max-w-none max-h-none' : 'w-full h-48 rounded-md overflow-hidden border border-gray-300 relative z-0'}>
              {isMapFullscreen && (
                 <button
                    type="button"
                    onClick={() => setIsMapFullscreen(false)}
-                   className="absolute top-4 right-4 z-[2000] bg-white p-3 rounded-full shadow-lg text-gray-800 hover:bg-gray-100 flex items-center justify-center border border-gray-300"
+                   className="absolute top-4 right-4 z-[10000] bg-white p-3 rounded-full shadow-lg text-gray-700 hover:bg-gray-100 flex items-center justify-center border border-gray-300"
                 >
-                   <Minimize size={24} />
+                   <X size={24} />
                 </button>
              )}
              {!isMapFullscreen && (
@@ -294,7 +303,7 @@ export default function VisitForm() {
                     />
                   </LayersControl.BaseLayer>
                 </LayersControl>
-                <MapUpdater center={mapCenter} />
+                <MapUpdater center={mapCenter} isFullscreen={isMapFullscreen} />
                 <LocationMarker
                   position={formData.latitude && formData.longitude ? [formData.latitude, formData.longitude] : null}
                   setPosition={handleMapClick}
