@@ -277,7 +277,7 @@ export default function VisitForm() {
                 <button
                    type="button"
                    onClick={() => setIsMapFullscreen(false)}
-                   className="absolute top-4 right-4 z-[10000] bg-white p-3 rounded-full shadow-lg text-gray-700 hover:bg-gray-100 flex items-center justify-center border border-gray-300"
+                   className="absolute top-4 left-1/2 -translate-x-1/2 z-[10000] bg-white p-3 rounded-full shadow-lg text-gray-700 hover:bg-gray-100 flex items-center justify-center border border-gray-300"
                 >
                    <X size={24} />
                 </button>
@@ -302,8 +302,8 @@ export default function VisitForm() {
                   </LayersControl.BaseLayer>
                   <LayersControl.BaseLayer name={t('toggleSatelliteMap')}>
                     <TileLayer
-                      attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-                      url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                      attribution='&copy; Google'
+                      url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
                     />
                   </LayersControl.BaseLayer>
                 </LayersControl>

@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/database';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Search, Calendar as CalendarIcon, Clock, Map as MapIcon } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useLocation } from 'react-router-dom';
 
 type SortOption = 'name' | 'dateFound' | 'interestLevel' | 'nextVisitDate';
 
@@ -18,7 +17,13 @@ export default function InterestedPersons() {
   const filterParam = queryParams.get('filter');
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<SortOption>('name');
+  const [sortBy, setSortBy] = useState<SortOption>(
+    (localStorage.getItem('interestedPersonsSortBy') as SortOption) || 'name'
+  );
+
+  useEffect(() => {
+    localStorage.setItem('interestedPersonsSortBy', sortBy);
+  }, [sortBy]);
 
   const filteredAndSortedVisits = React.useMemo(() => {
     if (!visits) return [];
@@ -30,7 +35,7 @@ export default function InterestedPersons() {
     }
 
     if (searchQuery) {
-      const lowerQuery = searchQuery.toLowerCase();
+      const lowerQuery = searchQuery.trim().toLowerCase();
       filtered = filtered.filter(v =>
         v.name.toLowerCase().includes(lowerQuery) ||
         (v.generalNotes && v.generalNotes.toLowerCase().includes(lowerQuery)) ||
