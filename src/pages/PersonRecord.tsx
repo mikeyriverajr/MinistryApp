@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, FollowUpVisit } from '../db/database';
-import { ArrowLeft, Navigation, Save, Plus, Edit, Trash2, Calendar, Clock } from 'lucide-react';
+import { ArrowLeft, Navigation, Save, Plus, Edit, Trash2, Calendar, Clock, MessageCircle } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import { useLanguage } from '../contexts/LanguageContext';
@@ -173,6 +173,26 @@ END:VCALENDAR`;
     document.body.removeChild(link);
   };
 
+  const shareViaWhatsApp = () => {
+    if (!visit) return;
+
+    let text = `*${visit.name}*\n\n`;
+    if (visit.generalNotes || visit.houseDescription) {
+      text += `${visit.generalNotes || visit.houseDescription}\n\n`;
+    }
+
+    const dateFoundStr = new Date(visit.dateFound).toLocaleDateString();
+    text += `Encontrado: ${dateFoundStr}\n`;
+
+    if (visit.latitude && visit.longitude) {
+      const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${visit.latitude},${visit.longitude}`;
+      text += `\nUbicación:\n${mapsUrl}`;
+    }
+
+    const encodedText = encodeURIComponent(text);
+    window.open(`https://wa.me/?text=${encodedText}`, '_blank');
+  };
+
   const openGoogleCalendar = () => {
     const nextDate = getNextEventDate();
     if (!nextDate || !visit) return;
@@ -223,24 +243,33 @@ END:VCALENDAR`;
           </div>
         </div>
 
-        {nextEventDate && (
-          <div className="mb-6 flex flex-wrap gap-2">
-            <button
-              onClick={openGoogleCalendar}
-              className="flex items-center text-xs bg-red-50 text-red-700 px-3 py-1.5 rounded-lg hover:bg-red-100 font-medium transition-colors border border-red-200"
-            >
-              <Calendar size={14} className="mr-1.5" />
-              {t('googleCalendar', { defaultValue: 'Google Calendar' })}
-            </button>
-            <button
-              onClick={generateICS}
-              className="flex items-center text-xs bg-blue-50 text-blue-800 px-3 py-1.5 rounded-lg hover:bg-blue-100 font-medium transition-colors border border-blue-200"
-            >
-              <Calendar size={14} className="mr-1.5" />
-              {t('downloadICS', { defaultValue: 'Descargar .ics' })}
-            </button>
-          </div>
-        )}
+        <div className="mb-6 flex flex-wrap gap-2">
+          {nextEventDate && (
+            <>
+              <button
+                onClick={openGoogleCalendar}
+                className="flex items-center text-xs bg-red-50 text-red-700 px-3 py-1.5 rounded-lg hover:bg-red-100 font-medium transition-colors border border-red-200"
+              >
+                <Calendar size={14} className="mr-1.5" />
+                {t('googleCalendar', { defaultValue: 'Google Calendar' })}
+              </button>
+              <button
+                onClick={generateICS}
+                className="flex items-center text-xs bg-blue-50 text-blue-800 px-3 py-1.5 rounded-lg hover:bg-blue-100 font-medium transition-colors border border-blue-200"
+              >
+                <Calendar size={14} className="mr-1.5" />
+                {t('downloadICS', { defaultValue: 'Descargar .ics' })}
+              </button>
+            </>
+          )}
+          <button
+            onClick={shareViaWhatsApp}
+            className="flex items-center text-xs bg-green-50 text-green-700 px-3 py-1.5 rounded-lg hover:bg-green-100 font-medium transition-colors border border-green-200"
+          >
+            <MessageCircle size={14} className="mr-1.5" />
+            Compartir por WhatsApp
+          </button>
+        </div>
 
         {visit.latitude && visit.longitude && (
           <div className="mb-4">
