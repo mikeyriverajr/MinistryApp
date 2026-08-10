@@ -179,7 +179,7 @@ export default function CalendarView() {
                     <h4 className="font-bold text-gray-700">{event.name}</h4>
                     <p className="text-sm text-gray-500">{event.houseDescription}</p>
                     {isRecurringToday && (
-                      <span className="inline-block mt-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
+                      <span className="inline-block mt-1 px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">
                         {t('bibleCourse')}
                       </span>
                     )}

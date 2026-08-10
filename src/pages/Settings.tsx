@@ -141,7 +141,7 @@ export default function Settings() {
         
         {importStatus && (
           <div className={`mt-4 p-3 rounded-md flex items-center justify-center text-sm ${
-            importStatus.includes('exitos') || importStatus.includes('success') ? 'bg-green-50 text-green-700' : 'bg-blue-50 text-blue-700'
+            importStatus.includes('exitos') || importStatus.includes('success') ? 'bg-green-50 text-green-700' : 'bg-blue-50 text-blue-800'
           }`}>
             {(importStatus.includes('exitos') || importStatus.includes('success')) && <CheckCircle size={16} className="mr-2" />}
             {importStatus}

@@ -229,7 +229,7 @@ END:VCALENDAR`;
             </button>
             <button
               onClick={generateICS}
-              className="flex items-center text-xs bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-100 font-medium transition-colors border border-blue-200"
+              className="flex items-center text-xs bg-blue-50 text-blue-800 px-3 py-1.5 rounded-lg hover:bg-blue-100 font-medium transition-colors border border-blue-200"
             >
               <Calendar size={14} className="mr-1.5" />
               {t('downloadICS', { defaultValue: 'Descargar .ics' })}
@@ -269,7 +269,7 @@ END:VCALENDAR`;
           {visit.isRecurringStudy && (
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
               <div className="flex justify-between items-center mb-2">
-                <h3 className="text-xs font-semibold text-blue-700 uppercase tracking-wider flex items-center">
+                <h3 className="text-xs font-semibold text-blue-800 uppercase tracking-wider flex items-center">
                   <Calendar size={14} className="mr-1" />
                   {t('regularTime')}
                 </h3>
@@ -280,7 +280,7 @@ END:VCALENDAR`;
                       setNewScheduleTime(visit.recurringStudyTime || '10:00');
                       setIsChangingSchedule(true);
                     }}
-                    className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200"
+                    className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded hover:bg-blue-200"
                   >
                     {t('changeSchedule')}
                   </button>
@@ -347,7 +347,7 @@ END:VCALENDAR`;
 
               {visit.customDates && visit.customDates.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-blue-200">
-                  <h4 className="text-xs font-semibold text-blue-700 mb-1">{t('exceptionDate')}</h4>
+                  <h4 className="text-xs font-semibold text-blue-800 mb-1">{t('exceptionDate')}</h4>
                   {visit.customDates.filter(d => new Date(d.newDate) >= new Date()).map((d, i) => (
                     <div key={i} className="text-sm text-blue-900 bg-white px-2 py-1 rounded inline-block mr-2 mb-2 border border-blue-100">
                       {new Date(d.newDate).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
