@@ -3,6 +3,7 @@ import { exportDatabase, importDatabase, db } from '../db/database';
 import { Download, Upload, CheckCircle, Trash2, Clock } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Language } from '../i18n';
+import { toast } from 'react-hot-toast';
 
 export default function Settings() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -14,9 +15,10 @@ export default function Settings() {
     try {
       await exportDatabase();
       localStorage.setItem('lastBackupDate', new Date().toISOString());
+      toast.success('Copia de seguridad exportada');
     } catch (error) {
       console.error('Error al exportar:', error);
-      alert('Hubo un error al exportar la base de datos.');
+      toast.error('Hubo un error al exportar la base de datos.');
     }
   };
 
@@ -31,10 +33,11 @@ export default function Settings() {
       try {
         await db.delete();
         localStorage.clear();
-        alert(t('dataDeleted'));
-        window.location.reload();
+        toast.success(t('dataDeleted'));
+        setTimeout(() => window.location.reload(), 1500);
       } catch (error) {
         console.error('Error deleting data', error);
+        toast.error('Error eliminando datos');
       }
     }
   };

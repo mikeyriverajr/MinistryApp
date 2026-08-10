@@ -91,20 +91,20 @@ export default function CalendarView() {
           <button onClick={handlePrevWeek} className="p-1 text-gray-500 hover:text-gray-700">
             <ChevronLeft size={24} />
           </button>
-          <div className="flex flex-col items-center justify-center">
+          <div className="flex flex-col items-center justify-center relative flex-1">
             <h2 className="text-xl font-bold text-gray-700 capitalize text-center">
               {format(selectedDate, 'MMMM yyyy', { locale })}
             </h2>
             {!isTodaySelected && (
               <button
                 onClick={handleGoToToday}
-                className="text-xs text-[#e07a5f] hover:text-[#c45b42] font-medium absolute top-[-10px] right-0 bg-blue-50 px-2 py-1 rounded shadow-sm border border-blue-100"
+                className="text-xs text-[#e07a5f] hover:text-[#c45b42] font-medium mt-1 bg-blue-50 px-2 py-1 rounded shadow-sm border border-blue-100"
               >
                 {t('goToToday', { defaultValue: 'Hoy' })}
               </button>
             )}
           </div>
-          <button onClick={handleNextWeek} className="p-1 text-gray-500 hover:text-gray-700">
+          <button onClick={handleNextWeek} className="p-1 text-gray-500 hover:text-gray-700 ml-2">
             <ChevronRight size={24} />
           </button>
         </div>

@@ -8,6 +8,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap, LayersControl } from 'react-leaflet';
 import { useLanguage } from '../contexts/LanguageContext';
 import L from 'leaflet';
+import { toast } from 'react-hot-toast';
 import 'leaflet/dist/leaflet.css';
 
 // Fix for leaflet's default icon issue in React
@@ -108,13 +109,13 @@ export default function VisitForm() {
         },
         (error) => {
           console.error('Error getting location:', error);
-          alert('No se pudo obtener la ubicación. Por favor revisa los permisos.');
+          toast.error(t('locationError'));
           setIsLocating(false);
         },
         { enableHighAccuracy: true }
       );
     } else {
-      alert('Tu navegador no soporta geolocalización.');
+      toast.error(t('locationNotSupported'));
       setIsLocating(false);
     }
   };
@@ -153,6 +154,8 @@ export default function VisitForm() {
     if (type === 'checkbox') {
       const checked = (e.target as HTMLInputElement).checked;
       setFormData(prev => ({ ...prev, [name]: checked }));
+    } else if (name === 'recurringStudyDayOfWeek') {
+      setFormData(prev => ({ ...prev, [name]: parseInt(value, 10) }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
@@ -182,9 +185,10 @@ export default function VisitForm() {
         await db.visits.add(visitData);
         navigate('/');
       }
+      toast.success(t('saveSuccess', { defaultValue: 'Registro guardado' }));
     } catch (error) {
       console.error('Error saving visit:', error);
-      alert(t('saveError'));
+      toast.error(t('saveError'));
     }
   };
 
