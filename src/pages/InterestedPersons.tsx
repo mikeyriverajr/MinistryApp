@@ -58,7 +58,7 @@ export default function InterestedPersons() {
     <div className="space-y-6 pb-20">
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-bold text-gray-800">{t('interestedPersons')}</h3>
+          <h3 className="text-lg font-bold text-gray-700">{t('interestedPersons')}</h3>
           <button
             onClick={() => navigate('/map')}
             className="flex items-center space-x-1 bg-[#e07a5f] text-white px-3 py-1.5 rounded-lg hover:bg-[#c45b42] transition-colors text-sm font-medium"
@@ -106,7 +106,7 @@ export default function InterestedPersons() {
                 className="block p-4 border border-gray-100 rounded-xl hover:border-[#e07a5f] hover:shadow-md transition-all cursor-pointer bg-white"
               >
                 <div className="flex justify-between items-start mb-2">
-                  <h4 className="font-bold text-gray-800 text-lg">{visit.name}</h4>
+                  <h4 className="font-bold text-gray-700 text-lg">{visit.name}</h4>
                   <span className={`text-xs px-2 py-1 rounded-full font-medium ${interestColor[visit.interestLevel]}`}>
                     {visit.interestLevel === 'Alto' ? t('high') : visit.interestLevel === 'Medio' ? t('medium') : t('low')}
                   </span>

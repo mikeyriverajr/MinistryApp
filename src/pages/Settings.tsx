@@ -73,7 +73,7 @@ export default function Settings() {
     <div className="space-y-6">
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <div className="flex justify-between items-center mb-2">
-          <h2 className="text-2xl font-bold text-gray-800">{t('settings')}</h2>
+          <h2 className="text-2xl font-bold text-gray-700">{t('settings')}</h2>
           <select
               value={language}
               onChange={(e) => setLanguage(e.target.value as Language)}

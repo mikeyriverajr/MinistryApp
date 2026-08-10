@@ -32,7 +32,7 @@ function App() {
 
   if (isInitializing || userProfile === undefined || showSplash) {
     return (
-      <div className="min-h-screen bg-slate-800 flex flex-col items-center justify-center text-[#e07a5f]">
+      <div className="min-h-screen bg-slate-700 flex flex-col items-center justify-center text-[#e07a5f]">
         <div className="animate-pulse flex flex-col items-center">
           <ButterflyIcon size={80} className="mb-4" />
           <h1 className="text-4xl font-bold tracking-wider">Morfo</h1>
@@ -46,7 +46,7 @@ function App() {
   return (
     <Router>
       <div className="min-h-screen bg-slate-50 flex flex-col">
-        <header className="bg-slate-800 border-b-2 border-[#e07a5f] text-white p-4 text-center font-bold text-xl sticky top-0 z-50 shadow-md">
+        <header className="bg-slate-700 border-b-2 border-[#e07a5f] text-white p-4 text-center font-bold text-xl sticky top-0 z-50 shadow-md">
           {t('appTitle')}
         </header>
         

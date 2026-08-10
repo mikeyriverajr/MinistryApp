@@ -88,11 +88,11 @@ export default function CalendarView() {
     <div className="space-y-6">
       <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
         <div className="flex justify-between items-center mb-4 relative">
-          <button onClick={handlePrevWeek} className="p-1 text-gray-500 hover:text-gray-800">
+          <button onClick={handlePrevWeek} className="p-1 text-gray-500 hover:text-gray-700">
             <ChevronLeft size={24} />
           </button>
           <div className="flex flex-col items-center justify-center">
-            <h2 className="text-xl font-bold text-gray-800 capitalize text-center">
+            <h2 className="text-xl font-bold text-gray-700 capitalize text-center">
               {format(selectedDate, 'MMMM yyyy', { locale })}
             </h2>
             {!isTodaySelected && (
@@ -104,7 +104,7 @@ export default function CalendarView() {
               </button>
             )}
           </div>
-          <button onClick={handleNextWeek} className="p-1 text-gray-500 hover:text-gray-800">
+          <button onClick={handleNextWeek} className="p-1 text-gray-500 hover:text-gray-700">
             <ChevronRight size={24} />
           </button>
         </div>
@@ -126,7 +126,7 @@ export default function CalendarView() {
                 <span className="text-xs font-medium uppercase mb-1">
                   {format(day, 'E', { locale }).substring(0, 3)}
                 </span>
-                <span className={`text-lg font-bold ${isSelected ? 'text-white' : 'text-gray-800'}`}>
+                <span className={`text-lg font-bold ${isSelected ? 'text-white' : 'text-gray-700'}`}>
                   {format(day, 'd')}
                 </span>
                 {hasEvents && !isSelected && (
@@ -176,10 +176,10 @@ export default function CalendarView() {
               return (
                 <div key={event.id} className="bg-white p-4 rounded-xl shadow-sm border border-l-4 border-l-[#e07a5f] flex justify-between items-center">
                   <div>
-                    <h4 className="font-bold text-gray-800">{event.name}</h4>
+                    <h4 className="font-bold text-gray-700">{event.name}</h4>
                     <p className="text-sm text-gray-500">{event.houseDescription}</p>
                     {isRecurringToday && (
-                      <span className="inline-block mt-1 px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">
+                      <span className="inline-block mt-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
                         {t('bibleCourse')}
                       </span>
                     )}

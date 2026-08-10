@@ -14,7 +14,7 @@ export default function Navigation() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-slate-800 border-t-2 border-[#e07a5f] px-2 py-3 pb-safe z-50">
+    <nav className="fixed bottom-0 left-0 right-0 bg-slate-700 border-t-2 border-[#e07a5f] px-2 py-3 pb-safe z-50">
       <ul className="flex justify-around items-center">
         {navItems.map((item) => (
           <li key={item.to}>

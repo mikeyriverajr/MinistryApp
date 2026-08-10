@@ -68,7 +68,7 @@ export default function MapView() {
 
   return (
     <div className="absolute inset-0 z-50 bg-gray-100 flex flex-col">
-      <div className="bg-slate-800 border-b border-[#e07a5f] text-white p-4 shadow-md flex justify-between items-center">
+      <div className="bg-slate-700 border-b border-[#e07a5f] text-white p-4 shadow-md flex justify-between items-center">
         <h2 className="font-bold text-lg">{t('territoryMap')}</h2>
         <button
           onClick={() => navigate('/')}
@@ -128,7 +128,7 @@ export default function MapView() {
             >
               <Popup className="custom-popup">
                 <div className="p-1 min-w-[200px]">
-                  <h3 className="font-bold text-gray-800 text-lg">{visit.name}</h3>
+                  <h3 className="font-bold text-gray-700 text-lg">{visit.name}</h3>
                   <p className="text-sm text-gray-600 mt-1">{visit.generalNotes}</p>
                   <p className="text-xs text-gray-500 mt-2 flex items-center">
                     {t('interest')}: <span className="font-medium ml-1">{visit.interestLevel === 'Alto' ? t('high') : visit.interestLevel === 'Medio' ? t('medium') : t('low')}</span>
