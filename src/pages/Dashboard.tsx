@@ -128,12 +128,18 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
+        <div
+          onClick={() => navigate('/personas')}
+          className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors"
+        >
           <Users className="text-[#e07a5f] mb-2" size={32} />
           <span className="text-3xl font-bold text-gray-700">{totalVisits}</span>
           <span className="text-sm text-gray-500">{t('records')}</span>
         </div>
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center justify-center">
+        <div
+          onClick={() => navigate('/personas?filter=cursos')}
+          className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors"
+        >
           <BookOpen className="text-green-600 mb-2" size={32} />
           <span className="text-3xl font-bold text-gray-700">{cursosBiblicos}</span>
           <span className="text-sm text-gray-500">{t('bibleCourses')}</span>

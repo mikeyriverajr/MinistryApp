@@ -4,13 +4,18 @@ import { db } from '../db/database';
 import { useNavigate } from 'react-router-dom';
 import { Search, Calendar as CalendarIcon, Clock, Map as MapIcon } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useLocation } from 'react-router-dom';
 
 type SortOption = 'name' | 'dateFound' | 'interestLevel' | 'nextVisitDate';
 
 export default function InterestedPersons() {
   const navigate = useNavigate();
+  const location = useLocation();
   const visits = useLiveQuery(() => db.visits.toArray());
   const { t } = useLanguage();
+
+  const queryParams = new URLSearchParams(location.search);
+  const filterParam = queryParams.get('filter');
 
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('name');
@@ -19,6 +24,11 @@ export default function InterestedPersons() {
     if (!visits) return [];
 
     let filtered = visits;
+
+    if (filterParam === 'cursos') {
+      filtered = filtered.filter(v => v.isRecurringStudy);
+    }
+
     if (searchQuery) {
       const lowerQuery = searchQuery.toLowerCase();
       filtered = filtered.filter(v =>
@@ -41,6 +51,9 @@ export default function InterestedPersons() {
         case 'nextVisitDate':
           const dateA = a.nextVisitDate ? new Date(a.nextVisitDate).getTime() : Infinity;
           const dateB = b.nextVisitDate ? new Date(b.nextVisitDate).getTime() : Infinity;
+          if (dateA === Infinity && dateB === Infinity) return 0;
+          if (dateA === Infinity) return 1;
+          if (dateB === Infinity) return -1;
           return dateA - dateB;
         default:
           return 0;
@@ -80,7 +93,7 @@ export default function InterestedPersons() {
             />
           </div>
 
-          <div className="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-hide">
+          <div className="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-hide pt-2 mt-2 border-t border-gray-100">
              <span className="text-sm text-gray-500 whitespace-nowrap">{t('sortBy')}</span>
              <select
                value={sortBy}

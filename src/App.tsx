@@ -13,6 +13,7 @@ import PersonRecord from './pages/PersonRecord';
 import InterestedPersons from './pages/InterestedPersons';
 import { useLanguage } from './contexts/LanguageContext';
 import { ButterflyIcon } from './components/ButterflyIcon';
+import { Toaster } from 'react-hot-toast';
 
 function App() {
   const [isInitializing, setIsInitializing] = useState(true);
@@ -68,6 +69,7 @@ function App() {
         </main>
         
         {isSetupComplete && <Navigation />}
+        <Toaster position="bottom-center" />
       </div>
     </Router>
   );

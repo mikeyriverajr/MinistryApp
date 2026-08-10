@@ -6,6 +6,7 @@ import { ArrowLeft, Navigation, Save, Plus, Edit, Trash2, Calendar, Clock } from
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import { useLanguage } from '../contexts/LanguageContext';
+import { toast } from 'react-hot-toast';
 
 export default function PersonRecord() {
   const { id } = useParams<{ id: string }>();
@@ -31,7 +32,7 @@ export default function PersonRecord() {
     if (visit.latitude && visit.longitude) {
       window.open(`https://www.google.com/maps/dir/?api=1&destination=${visit.latitude},${visit.longitude}`, '_blank');
     } else {
-      alert(t('noLocationSaved'));
+      toast.error(t('noLocationSaved'));
     }
   };
 
@@ -48,7 +49,7 @@ export default function PersonRecord() {
 
   const handleAddFollowUp = async () => {
     if (!newVisitDate || !newVisitNotes.trim()) {
-      alert(t('enterDateAndNotes'));
+      toast.error(t('enterDateAndNotes'));
       return;
     }
 
@@ -417,7 +418,7 @@ END:VCALENDAR`;
                             recurringStudyTime: timeString,
                             updatedAt: new Date()
                           });
-                          alert(t('startedBibleCourse'));
+                          toast.success(t('startedBibleCourse'));
                         }
                       }}
                       className="mr-2 h-4 w-4 text-[#e07a5f] focus:ring-[#e07a5f] border-gray-300 rounded"
