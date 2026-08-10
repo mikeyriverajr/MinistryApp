@@ -18,3 +18,12 @@
 2:10:56 PM [vite] (client) page reload tsconfig.tsbuildinfo
 2:12:21 PM [vite] (client) hmr update /src/pages/VisitForm.tsx, /src/index.css
 2:12:25 PM [vite] (client) page reload tsconfig.tsbuildinfo
+2:38:48 PM [vite] (client) page reload tsconfig.tsbuildinfo
+2:44:04 PM [vite] (client) page reload index.html
+2:44:12 PM [vite] (client) page reload tsconfig.tsbuildinfo
+3:26:38 PM [vite] (client) page reload index.html
+3:27:49 PM [vite] (client) page reload tsconfig.tsbuildinfo
+3:29:51 PM [vite] (client) hmr update /src/pages/PersonRecord.tsx, /src/index.css
+3:29:51 PM [vite] (client) hmr update /src/pages/Settings.tsx, /src/index.css
+3:29:51 PM [vite] (client) hmr update /src/pages/Dashboard.tsx, /src/index.css
+3:29:51 PM [vite] (client) hmr update /src/pages/CalendarView.tsx, /src/index.css

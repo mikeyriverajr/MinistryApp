@@ -113,10 +113,10 @@ export default function Dashboard() {
       {showBackupReminder && (
         <div className="bg-blue-50 p-4 rounded-xl shadow-sm border border-blue-100 flex items-start justify-between">
           <div>
-            <h4 className="font-bold text-blue-700 text-sm">Recordatorio de Copia de Seguridad</h4>
+            <h4 className="font-bold text-blue-800 text-sm">Recordatorio de Copia de Seguridad</h4>
             <p className="text-xs text-blue-600 mt-1">Hace tiempo que no haces una copia de tus registros.</p>
           </div>
-          <Link to="/settings" className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 font-medium transition-colors">
+          <Link to="/settings" className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-800 font-medium transition-colors">
             Ir a Ajustes
           </Link>
         </div>
@@ -185,9 +185,9 @@ export default function Dashboard() {
                    <div key={`today-${visit.id}`} onClick={() => navigate(`/person/${visit.id}`)} className="bg-blue-50 border border-blue-100 p-3 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors flex justify-between items-center">
                      <div>
                        <h4 className="font-bold text-blue-900">{visit.name}</h4>
-                       <p className="text-xs text-blue-700 mt-1 line-clamp-1">{visit.generalNotes || t('withoutNotes')}</p>
+                       <p className="text-xs text-blue-800 mt-1 line-clamp-1">{visit.generalNotes || t('withoutNotes')}</p>
                      </div>
-                     <span className="text-blue-700 font-bold bg-white px-2 py-1 rounded shadow-sm text-sm whitespace-nowrap ml-2">{timeStr}</span>
+                     <span className="text-blue-800 font-bold bg-white px-2 py-1 rounded shadow-sm text-sm whitespace-nowrap ml-2">{timeStr}</span>
                    </div>
                 );
              })}
