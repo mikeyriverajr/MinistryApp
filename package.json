@@ -12,6 +12,7 @@
   "dependencies": {
     "@tailwindcss/vite": "^4.0.0",
     "@types/react-datepicker": "^6.2.0",
+    "@vite-pwa/assets-generator": "^0.2.6",
     "date-fns": "^4.1.0",
     "dexie": "^4.0.10",
     "dexie-export-import": "^4.4.0",
@@ -33,6 +34,6 @@
     "@vitejs/plugin-react": "^4.3.4",
     "typescript": "~5.7.2",
     "vite": "^6.1.0",
-    "vite-plugin-pwa": "^0.21.1"
+    "vite-plugin-pwa": "^0.21.2"
   }
 }

@@ -14,7 +14,7 @@ export default function Navigation() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-2 py-3 pb-safe z-50">
+    <nav className="fixed bottom-0 left-0 right-0 bg-slate-800 border-t-2 border-[#e07a5f] px-2 py-3 pb-safe z-50">
       <ul className="flex justify-around items-center">
         {navItems.map((item) => (
           <li key={item.to}>
@@ -22,7 +22,7 @@ export default function Navigation() {
               to={item.to}
               className={({ isActive }) =>
                 `flex flex-col items-center justify-center p-2 rounded-lg transition-colors ${
-                  isActive ? 'text-[#f25f22]' : 'text-gray-500 hover:text-[#f25f22]'
+                  isActive ? 'text-[#e07a5f]' : 'text-slate-400 hover:text-[#e07a5f]'
                 }`
               }
             >

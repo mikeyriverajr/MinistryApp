@@ -61,7 +61,7 @@ export default function InterestedPersons() {
           <h3 className="text-lg font-bold text-gray-800">{t('interestedPersons')}</h3>
           <button
             onClick={() => navigate('/map')}
-            className="flex items-center space-x-1 bg-[#f25f22] text-white px-3 py-1.5 rounded-lg hover:bg-[#d94a12] transition-colors text-sm font-medium"
+            className="flex items-center space-x-1 bg-[#e07a5f] text-white px-3 py-1.5 rounded-lg hover:bg-[#c45b42] transition-colors text-sm font-medium"
           >
             <MapIcon size={16} />
             <span>{t('navMap')}</span>
@@ -76,7 +76,7 @@ export default function InterestedPersons() {
               placeholder={t('searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f25f22]"
+              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#e07a5f]"
             />
           </div>
 
@@ -85,7 +85,7 @@ export default function InterestedPersons() {
              <select
                value={sortBy}
                onChange={(e) => setSortBy(e.target.value as SortOption)}
-               className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#f25f22] bg-gray-50"
+               className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#e07a5f] bg-gray-50"
              >
                 <option value="name">{t('sortName')}</option>
                 <option value="dateFound">{t('sortDateFound')}</option>
@@ -103,7 +103,7 @@ export default function InterestedPersons() {
               <div
                 key={visit.id}
                 onClick={() => navigate(`/person/${visit.id}`)}
-                className="block p-4 border border-gray-100 rounded-xl hover:border-[#f25f22] hover:shadow-md transition-all cursor-pointer bg-white"
+                className="block p-4 border border-gray-100 rounded-xl hover:border-[#e07a5f] hover:shadow-md transition-all cursor-pointer bg-white"
               >
                 <div className="flex justify-between items-start mb-2">
                   <h4 className="font-bold text-gray-800 text-lg">{visit.name}</h4>
@@ -122,7 +122,7 @@ export default function InterestedPersons() {
                     <span>{t('found')}: {new Date(visit.dateFound).toLocaleDateString()}</span>
                   </div>
                   {visit.nextVisitDate && (
-                    <div className="flex items-center text-[#f25f22] font-medium">
+                    <div className="flex items-center text-[#e07a5f] font-medium">
                       <Clock size={14} className="mr-1" />
                       <span>{t('visit')}: {new Date(visit.nextVisitDate).toLocaleDateString()}</span>
                     </div>
