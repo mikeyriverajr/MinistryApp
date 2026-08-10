@@ -118,13 +118,17 @@ export default function PersonRecord() {
 
     if (visit.nextVisitDate) {
       nextDate = new Date(visit.nextVisitDate);
-    } else if (visit.isRecurringStudy && visit.recurringStudyTime) {
+    } else if (visit.isRecurringStudy && visit.recurringStudyTime && visit.recurringStudyDayOfWeek !== null && visit.recurringStudyDayOfWeek !== undefined) {
       nextDate = new Date();
-      while (nextDate.getDay() !== visit.recurringStudyDayOfWeek) {
+      let count = 0;
+      while (nextDate.getDay() !== visit.recurringStudyDayOfWeek && count < 7) {
         nextDate.setDate(nextDate.getDate() + 1);
+        count++;
       }
-      const [h, m] = visit.recurringStudyTime.split(':').map(Number);
-      nextDate.setHours(h, m, 0, 0);
+      if (visit.recurringStudyTime.includes(':')) {
+        const [h, m] = visit.recurringStudyTime.split(':').map(Number);
+        nextDate.setHours(h, m, 0, 0);
+      }
     }
 
     // Check for exceptions

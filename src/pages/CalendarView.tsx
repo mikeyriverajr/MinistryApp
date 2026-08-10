@@ -54,7 +54,7 @@ export default function CalendarView() {
                 return d.getHours() * 60 + d.getMinutes();
              }
           }
-          if (v.isRecurringStudy && v.recurringStudyDayOfWeek === date.getDay() && v.recurringStudyTime) {
+          if (v.isRecurringStudy && v.recurringStudyDayOfWeek === date.getDay() && v.recurringStudyTime && v.recurringStudyTime.includes(':')) {
              const [h, m] = v.recurringStudyTime.split(':').map(Number);
              return h * 60 + m;
           }
