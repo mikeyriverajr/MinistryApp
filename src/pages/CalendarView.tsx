@@ -3,12 +3,18 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Visit } from '../db/database';
 import { format, startOfWeek, addDays, subDays, isSameDay } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RefreshCw, UserCircle2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { downloadEncryptedAgenda } from '../utils/syncService';
+import { decryptData } from '../utils/crypto';
+import { toast } from 'react-hot-toast';
 
 export default function CalendarView() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const visits = useLiveQuery(() => db.visits.toArray());
+  const [partnerEvents, setPartnerEvents] = useState<Visit[]>([]);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [showPartner, setShowPartner] = useState(true);
   const { t, language } = useLanguage();
   const locale = language === 'es' ? es : enUS;
 
@@ -45,7 +51,68 @@ export default function CalendarView() {
       }
       
       return isEventToday;
-    }).sort((a, b) => {
+    });
+  };
+
+  const syncPartnerAgenda = async () => {
+    const code = localStorage.getItem('partnerCode');
+    const pin = localStorage.getItem('partnerPin');
+
+    if (!code || !pin) return;
+
+    setIsSyncing(true);
+    const toastId = toast.loading('Sincronizando agenda de compañero...');
+
+    try {
+      const encrypted = await downloadEncryptedAgenda(code);
+      const json = await decryptData(encrypted, pin);
+      const data = JSON.parse(json) as Visit[];
+      setPartnerEvents(data);
+      toast.success('Agenda sincronizada', { id: toastId });
+    } catch (err) {
+      console.error(err);
+      toast.error('Error al sincronizar. Verifica el código/PIN.', { id: toastId });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const getPartnerEventsForDate = (date: Date) => {
+    if (!partnerEvents || !showPartner) return [];
+
+    return partnerEvents.filter(visit => {
+      let isEventToday = false;
+
+      // Check nextVisitDate
+      if (visit.nextVisitDate && isSameDay(new Date(visit.nextVisitDate), date)) {
+        isEventToday = true;
+      }
+
+      // Check recurring studies
+      if (visit.isRecurringStudy && visit.recurringStudyDayOfWeek !== null) {
+        if (date.getDay() === visit.recurringStudyDayOfWeek) {
+          isEventToday = true;
+        }
+      }
+
+      // Check custom exceptions
+      if (visit.customDates && visit.customDates.length > 0) {
+        const hasExceptionToday = visit.customDates.some(d => isSameDay(new Date(d.newDate), date));
+        const hasSkippedToday = visit.customDates.some(d => isSameDay(new Date(d.originalDate), date));
+
+        if (hasExceptionToday) isEventToday = true;
+        if (hasSkippedToday) isEventToday = false;
+      }
+
+      return isEventToday;
+    });
+  };
+
+  const getCombinedEventsForDate = (date: Date) => {
+    const myEvents = getEventsForDate(date).map(e => ({ ...e, _isPartner: false }));
+    const theirEvents = getPartnerEventsForDate(date).map(e => ({ ...e, _isPartner: true }));
+
+    return [...myEvents, ...theirEvents].sort((a, b) => {
        const getTime = (v: Visit) => {
           if (v.customDates) {
              const exc = v.customDates.find(d => isSameDay(new Date(d.newDate), date));
@@ -68,7 +135,8 @@ export default function CalendarView() {
     });
   };
 
-  const selectedEvents = getEventsForDate(selectedDate);
+  const combinedSelectedEvents = getCombinedEventsForDate(selectedDate);
+  const hasPartner = !!localStorage.getItem('partnerCode');
   
   const handlePrevWeek = () => {
     setSelectedDate(prev => subDays(prev, 7));
@@ -132,6 +200,9 @@ export default function CalendarView() {
                 {hasEvents && !isSelected && (
                   <span className="w-1.5 h-1.5 bg-[#e07a5f] rounded-full mt-1"></span>
                 )}
+                {getPartnerEventsForDate(day).length > 0 && !isSelected && (
+                  <span className="w-1.5 h-1.5 bg-teal-500 rounded-full mt-0.5"></span>
+                )}
               </button>
             );
           })}
@@ -139,17 +210,37 @@ export default function CalendarView() {
       </div>
 
       <div>
-        <h3 className="font-bold text-gray-700 mb-3 ml-1">
-          {t('agendaFor', { date: format(selectedDate, language === 'es' ? "d 'de' MMMM" : 'MMMM do', { locale }) })}
-        </h3>
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="font-bold text-gray-700 ml-1">
+            {t('agendaFor', { date: format(selectedDate, language === 'es' ? "d 'de' MMMM" : 'MMMM do', { locale }) })}
+          </h3>
+          {hasPartner && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowPartner(!showPartner)}
+                className={`text-xs px-2 py-1 rounded border font-medium ${showPartner ? 'bg-teal-50 text-teal-700 border-teal-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}
+              >
+                {showPartner ? 'Ocultar Compañero' : 'Ver Compañero'}
+              </button>
+              <button
+                 onClick={syncPartnerAgenda}
+                 disabled={isSyncing}
+                 className="p-1.5 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 disabled:opacity-50"
+                 title="Sincronizar agenda de compañero"
+              >
+                 <RefreshCw size={16} className={isSyncing ? 'animate-spin' : ''} />
+              </button>
+            </div>
+          )}
+        </div>
         
-        {selectedEvents.length === 0 ? (
+        {combinedSelectedEvents.length === 0 ? (
           <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 text-center text-gray-500">
             {t('noVisitsScheduled')}
           </div>
         ) : (
           <div className="space-y-3">
-            {selectedEvents.map(event => {
+            {combinedSelectedEvents.map(event => {
               let time = t('hourToBeDefined');
 
               if (event.customDates) {
@@ -173,10 +264,16 @@ export default function CalendarView() {
                 (selectedDate.getDay() === event.recurringStudyDayOfWeek ||
                  (event.customDates && event.customDates.some(d => isSameDay(new Date(d.newDate), selectedDate))));
 
+
+              const isPartner = event._isPartner;
+
               return (
-                <div key={event.id} className="bg-white p-4 rounded-xl shadow-sm border border-l-4 border-l-[#e07a5f] flex justify-between items-center">
+                <div key={`${isPartner ? 'partner' : 'mine'}-${event.id}`} className={`bg-white p-4 rounded-xl shadow-sm border-l-4 flex justify-between items-center ${isPartner ? 'border-l-teal-500 opacity-90' : 'border-l-[#e07a5f]'}`}>
                   <div>
-                    <h4 className="font-bold text-gray-700">{event.name}</h4>
+                    <h4 className="font-bold text-gray-700 flex items-center">
+                      {event.name}
+                      {isPartner && <span title="Visita de compañero"><UserCircle2 size={14} className="ml-2 text-teal-600" /></span>}
+                    </h4>
                     <p className="text-sm text-gray-500">{event.houseDescription}</p>
                     {isRecurringToday && (
                       <span className="inline-block mt-1 px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">
@@ -185,7 +282,7 @@ export default function CalendarView() {
                     )}
                   </div>
                   <div className="text-right">
-                    <span className="text-lg font-bold text-[#e07a5f]">{time}</span>
+                    <span className={`text-lg font-bold ${isPartner ? 'text-teal-600' : 'text-[#e07a5f]'}`}>{time}</span>
                   </div>
                 </div>
               );
