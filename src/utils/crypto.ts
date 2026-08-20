@@ -29,6 +29,9 @@ async function getKey(pin: string, salt: Uint8Array): Promise<CryptoKey> {
 
 // Encrypts a string (e.g., JSON stringified data) using a PIN
 export async function encryptData(text: string, pin: string): Promise<string> {
+  if (typeof window === 'undefined' || !window.crypto || !window.crypto.subtle) {
+    throw new Error("Cifrado no soportado. Usa HTTPS o instala la aplicación.");
+  }
   try {
     const enc = new TextEncoder();
     const salt = window.crypto.getRandomValues(new Uint8Array(16));
@@ -62,6 +65,9 @@ export async function encryptData(text: string, pin: string): Promise<string> {
 
 // Decrypts a base64 string back into the original string
 export async function decryptData(base64String: string, pin: string): Promise<string> {
+  if (typeof window === 'undefined' || !window.crypto || !window.crypto.subtle) {
+    throw new Error("Descifrado no soportado. Usa HTTPS o instala la aplicación.");
+  }
   try {
     const binary = atob(base64String);
     const combined = new Uint8Array(binary.length);

@@ -69,9 +69,10 @@ export default function CalendarView() {
       const data = JSON.parse(json) as Visit[];
       setPartnerEvents(data);
       toast.success('Agenda sincronizada', { id: toastId });
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      toast.error('Error al sincronizar. Verifica el código/PIN.', { id: toastId });
+      const msg = err.message || 'Error al sincronizar. Verifica el código/PIN.';
+      toast.error(msg, { id: toastId, duration: 5000 });
     } finally {
       setIsSyncing(false);
     }
