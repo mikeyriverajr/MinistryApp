@@ -43,9 +43,9 @@ export default function Settings() {
 
       setPublishedCode(pasteId);
       toast.success('Agenda publicada con éxito', { id: toastId });
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      toast.error('Error al publicar agenda', { id: toastId });
+      toast.error(err.message || 'Error al publicar agenda', { id: toastId, duration: 5000 });
     } finally {
       setIsPublishing(false);
     }

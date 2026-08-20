@@ -20,7 +20,10 @@ export async function uploadEncryptedAgenda(encryptedData: string): Promise<stri
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            if (response.status === 413) {
+                 throw new Error("El tamaño de la agenda es demasiado grande. Intenta eliminar visitas antiguas.");
+            }
+            throw new Error(`Error del servidor (${response.status}). Verifica tu conexión.`);
         }
 
         // The response text is the URL of the paste, e.g. "https://dpaste.com/6ZQ384BMH"
@@ -32,9 +35,12 @@ export async function uploadEncryptedAgenda(encryptedData: string): Promise<stri
         const id = parts[parts.length - 1] || parts[parts.length - 2];
 
         return id;
-    } catch (error) {
+    } catch (error: any) {
         console.error("Upload error:", error);
-        throw new Error("Failed to upload agenda.");
+        if (error.message && error.message !== "Failed to fetch") {
+            throw error; // Re-throw the specific error we created
+        }
+        throw new Error("Error de conexión al publicar. Verifica tu internet.");
     }
 }
 
@@ -46,15 +52,18 @@ export async function downloadEncryptedAgenda(partnerCode: string): Promise<stri
 
         if (!response.ok) {
              if (response.status === 404) {
-                 throw new Error("Partner code not found or expired.");
+                 throw new Error("El código de compañero no existe o ha expirado.");
              }
-             throw new Error(`HTTP error! status: ${response.status}`);
+             throw new Error(`Error del servidor (${response.status}). Verifica tu conexión.`);
         }
 
         const encryptedData = await response.text();
         return encryptedData.trim();
-    } catch (error) {
+    } catch (error: any) {
         console.error("Download error:", error);
-        throw error;
+        if (error.message && error.message !== "Failed to fetch") {
+            throw error;
+        }
+        throw new Error("Error de conexión al sincronizar. Verifica tu internet.");
     }
 }
