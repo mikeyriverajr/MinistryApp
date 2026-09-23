@@ -127,6 +127,21 @@ export const translations = {
 
     // Settings
     settings: "Ajustes",
+    // Report
+    navReport: "Informe",
+    report: "Informe",
+    addHours: "Añadir Horas",
+    hours: "Horas",
+    dateOfHours: "Fecha",
+    hoursAmount: "Cantidad de horas",
+    addHoursSuccess: "Horas añadidas correctamente",
+    currentMonth: "Mes Actual",
+    totalHours: "Total Horas",
+    totalBibleStudies: "Total Estudios Bíblicos",
+    history: "Historial",
+    noHistoryYet: "Aún no hay historial de meses anteriores.",
+    updateSuccess: "Actualizado correctamente",
+
     manageDataPrefs: "Gestiona tus datos y preferencias",
     dataManagement: "Gestión de Datos",
     backupInstructions: "Crea una copia de seguridad de tus registros o restaura datos de otro dispositivo.",
@@ -275,6 +290,21 @@ export const translations = {
 
     // Settings
     settings: "Settings",
+    // Report
+    navReport: "Report",
+    report: "Report",
+    addHours: "Add Hours",
+    hours: "Hours",
+    dateOfHours: "Date",
+    hoursAmount: "Amount of hours",
+    addHoursSuccess: "Hours added successfully",
+    currentMonth: "Current Month",
+    totalHours: "Total Hours",
+    totalBibleStudies: "Total Bible Studies",
+    history: "History",
+    noHistoryYet: "No history for previous months yet.",
+    updateSuccess: "Updated successfully",
+
     manageDataPrefs: "Manage your data and preferences",
     dataManagement: "Data Management",
     backupInstructions: "Create a backup of your records or restore data from another device.",

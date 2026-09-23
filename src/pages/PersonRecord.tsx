@@ -441,6 +441,13 @@ END:VCALENDAR`;
                         if (e.target.checked) {
                           const now = new Date();
                           const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+                          // Auto-increment the current month's manual Bible study count
+                          const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                          const currentStats = await db.monthlyStats.get(monthStr);
+                          const newCount = currentStats ? currentStats.studyCount + 1 : 1;
+                          await db.monthlyStats.put({ month: monthStr, studyCount: newCount });
+
                           await db.visits.update(personId, {
                             isRecurringStudy: true,
                             recurringStudyDayOfWeek: now.getDay(),

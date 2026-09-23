@@ -1,19 +1,29 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/database';
 import { Link, useNavigate } from 'react-router-dom';
-import { Users, BookOpen } from 'lucide-react';
+import { Clock, BookOpen, Plus } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { format } from 'date-fns';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const userProfile = useLiveQuery(() => db.userProfile.toArray());
   const visits = useLiveQuery(() => db.visits.toArray());
+  const timeEntries = useLiveQuery(() => db.timeEntries.toArray());
   const { t } = useLanguage();
 
   const name = userProfile?.[0]?.name || 'Publicador';
-  const totalVisits = visits?.length || 0;
   const cursosBiblicos = visits?.filter(v => v.isRecurringStudy).length || 0;
+
+  const currentMonthString = format(new Date(), 'yyyy-MM');
+  const currentMonthHours = useMemo(() => {
+    if (!timeEntries) return 0;
+    return timeEntries
+      .filter(e => format(new Date(e.date), 'yyyy-MM') === currentMonthString)
+      .reduce((sum, e) => sum + e.hours, 0);
+  }, [timeEntries, currentMonthString]);
+
 
   const backupReminder = localStorage.getItem('backupReminder') || 'monthly';
   const lastBackupDate = localStorage.getItem('lastBackupDate');
@@ -129,12 +139,12 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-2 gap-4">
         <div
-          onClick={() => navigate('/personas')}
+          onClick={() => navigate('/informe')}
           className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors"
         >
-          <Users className="text-[#e07a5f] mb-2" size={32} />
-          <span className="text-3xl font-bold text-gray-700">{totalVisits}</span>
-          <span className="text-sm text-gray-500">{t('records')}</span>
+          <Clock className="text-blue-600 mb-2" size={32} />
+          <span className="text-3xl font-bold text-gray-700">{currentMonthHours}</span>
+          <span className="text-sm text-gray-500">{t('hours')}</span>
         </div>
         <div
           onClick={() => navigate('/personas?filter=cursos')}
@@ -152,6 +162,13 @@ export default function Dashboard() {
           className="bg-[#e07a5f] text-white text-center py-3 rounded-lg font-medium shadow-sm hover:bg-[#c45b42] transition-colors"
         >
           {t('registerNewVisit')}
+        </Link>
+        <Link
+          to="/informe"
+          className="bg-white border border-[#e07a5f] text-[#e07a5f] flex justify-center items-center py-3 rounded-lg font-medium shadow-sm hover:bg-orange-50 transition-colors"
+        >
+          <Plus size={18} className="mr-2" />
+          {t('addHours')}
         </Link>
       </div>
 

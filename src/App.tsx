@@ -11,6 +11,7 @@ import CalendarView from './pages/CalendarView';
 import Settings from './pages/Settings';
 import PersonRecord from './pages/PersonRecord';
 import InterestedPersons from './pages/InterestedPersons';
+import ReportView from './pages/ReportView';
 import { useLanguage } from './contexts/LanguageContext';
 import { ButterflyIcon } from './components/ButterflyIcon';
 import { Toaster } from 'react-hot-toast';
@@ -62,6 +63,7 @@ function App() {
               <Route path="/add" element={<VisitForm />} />
               <Route path="/edit/:id" element={<VisitForm />} />
               <Route path="/calendar" element={<CalendarView />} />
+              <Route path="/informe" element={<ReportView />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/person/:id" element={<PersonRecord />} />
             </Routes>
