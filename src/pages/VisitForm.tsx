@@ -176,11 +176,30 @@ export default function VisitForm() {
       if (isEditing && personId) {
         // use an explicit update to avoid UpdateSpec typing issues with complex nested objects
         const record = await db.visits.get(personId);
+
+        // If checking 'isRecurringStudy' for the first time while editing
+        if (record && !record.isRecurringStudy && visitData.isRecurringStudy) {
+           const now = new Date();
+           const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+           const currentStats = await db.monthlyStats.get(monthStr);
+           const newCount = currentStats ? currentStats.studyCount + 1 : 1;
+           await db.monthlyStats.put({ month: monthStr, studyCount: newCount });
+        }
+
         if (record) {
            await db.visits.put({ ...record, ...visitData, id: personId });
         }
         navigate(`/person/${personId}`);
       } else {
+        // If creating a brand new record and marking it as a study
+        if (visitData.isRecurringStudy) {
+           const now = new Date();
+           const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+           const currentStats = await db.monthlyStats.get(monthStr);
+           const newCount = currentStats ? currentStats.studyCount + 1 : 1;
+           await db.monthlyStats.put({ month: monthStr, studyCount: newCount });
+        }
+
         visitData.createdAt = new Date();
         await db.visits.add(visitData);
         navigate('/');

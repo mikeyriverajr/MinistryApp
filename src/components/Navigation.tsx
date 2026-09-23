@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Home, Users, Calendar, Settings, PlusCircle } from 'lucide-react';
+import { Home, Users, Calendar, Settings, ClipboardList } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 export default function Navigation() {
@@ -8,8 +8,8 @@ export default function Navigation() {
   const navItems = [
     { to: '/', icon: Home, label: t('navDashboard') },
     { to: '/personas', icon: Users, label: t('interestedPersons') },
-    { to: '/add', icon: PlusCircle, label: t('registerNewVisit').split(' ')[0] },
     { to: '/calendar', icon: Calendar, label: t('navCalendar') },
+    { to: '/informe', icon: ClipboardList, label: t('navReport') },
     { to: '/settings', icon: Settings, label: t('navSettings') },
   ];
 

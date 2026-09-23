@@ -12,6 +12,17 @@ export interface FollowUpVisit {
   notes: string;
 }
 
+export interface TimeEntry {
+  id?: number;
+  date: Date;
+  hours: number;
+}
+
+export interface MonthlyStat {
+  month: string; // Format: "YYYY-MM"
+  studyCount: number;
+}
+
 export interface Visit {
   id?: number;
   name: string;
@@ -35,6 +46,8 @@ export interface Visit {
 export class MinistryDatabase extends Dexie {
   userProfile!: Table<UserProfile, number>;
   visits!: Table<Visit, number>;
+  timeEntries!: Table<TimeEntry, number>;
+  monthlyStats!: Table<MonthlyStat, string>;
 
   constructor() {
     super('MinistryDB');
@@ -49,6 +62,10 @@ export class MinistryDatabase extends Dexie {
         delete visit.isReturnVisit;
         visit.followUpVisits = [];
       });
+    });
+    this.version(3).stores({
+      timeEntries: '++id, date',
+      monthlyStats: 'month'
     });
   }
 }
