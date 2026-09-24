@@ -68,6 +68,7 @@ export default function VisitForm() {
 
   const [formData, setFormData] = useState<Partial<Visit>>({
     name: '',
+    phoneNumber: '',
     dateFound: new Date(),
     latitude: null,
     longitude: null,
@@ -236,6 +237,18 @@ export default function VisitForm() {
             onChange={handleChange}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#e07a5f]"
             placeholder={t('nameInputPlaceholder')}
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">{t('phoneNumber') as string || 'Teléfono'}</label>
+          <input
+            type="tel"
+            name="phoneNumber"
+            value={formData.phoneNumber || ''}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#e07a5f]"
+            placeholder={t('phoneNumberPlaceholder') as string || 'Ej. +595...'}
           />
         </div>
 
