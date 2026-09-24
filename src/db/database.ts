@@ -16,6 +16,8 @@ export interface TimeEntry {
   id?: number;
   date: Date;
   hours: number;
+  isCredit?: boolean;
+  creditType?: string;
 }
 
 export interface MonthlyStat {
@@ -26,6 +28,7 @@ export interface MonthlyStat {
 export interface Visit {
   id?: number;
   name: string;
+  phoneNumber?: string;
   dateFound: Date;
   latitude: number | null;
   longitude: number | null;
@@ -66,6 +69,12 @@ export class MinistryDatabase extends Dexie {
     this.version(3).stores({
       timeEntries: '++id, date',
       monthlyStats: 'month'
+    });
+    this.version(4).stores({
+      visits: '++id, name, dateFound, nextVisitDate, interestLevel, isRecurringStudy, phoneNumber',
+      timeEntries: '++id, date, isCredit, creditType',
+    }).upgrade(() => {
+      // No schema data migration strictly needed, but explicitly bumping
     });
   }
 }

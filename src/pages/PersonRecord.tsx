@@ -284,6 +284,23 @@ END:VCALENDAR`;
         )}
 
         <div className="space-y-4">
+          {visit.phoneNumber && (
+            <div>
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('phoneNumber') as string || 'Teléfono'}</h3>
+              <div className="flex items-center gap-3">
+                <p className="text-gray-700">{visit.phoneNumber}</p>
+                <a
+                  href={`https://wa.me/${visit.phoneNumber.replace(/\D/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center text-xs bg-green-100 text-green-700 hover:bg-green-200 px-2 py-1 rounded font-medium transition-colors"
+                >
+                  {t('sendWhatsApp') as string || 'Enviar WhatsApp'}
+                </a>
+              </div>
+            </div>
+          )}
+
           <div>
             <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('houseDescription')}</h3>
             <p className="text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-100">{visit.houseDescription || t('noDescription')}</p>
