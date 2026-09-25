@@ -1,26 +1,66 @@
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/database';
 import { Link, useNavigate } from 'react-router-dom';
-import { Clock, BookOpen, Plus } from 'lucide-react';
+import { Clock, BookOpen, Plus, Save, X } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { format } from 'date-fns';
+import DatePicker from 'react-datepicker';
+import "react-datepicker/dist/react-datepicker.css";
+import { toast } from 'react-hot-toast';
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [showAddHoursModal, setShowAddHoursModal] = useState(false);
+  const [newEntryDate, setNewEntryDate] = useState<Date | null>(new Date());
+  const [newEntryHours, setNewEntryHours] = useState<string>('');
+  const [isCredit, setIsCredit] = useState(false);
+  const [creditType, setCreditType] = useState('Betel');
   const userProfile = useLiveQuery(() => db.userProfile.toArray());
   const visits = useLiveQuery(() => db.visits.toArray());
   const timeEntries = useLiveQuery(() => db.timeEntries.toArray());
   const { t } = useLanguage();
 
+  const monthlyStats = useLiveQuery(() => db.monthlyStats.toArray());
+
+  const handleAddHours = async () => {
+    if (!newEntryDate || !newEntryHours || isNaN(Number(newEntryHours))) {
+      toast.error('Por favor ingresa una fecha y cantidad válida.');
+      return;
+    }
+
+    try {
+      await db.timeEntries.add({
+        date: newEntryDate,
+        hours: Number(newEntryHours),
+        isCredit,
+        creditType: isCredit ? creditType : undefined,
+      });
+      setNewEntryHours('');
+      setIsCredit(false);
+      setCreditType('Betel');
+      setShowAddHoursModal(false);
+      toast.success(t('addHoursSuccess'));
+    } catch (e) {
+      console.error(e);
+      toast.error('Error al guardar horas.');
+    }
+  };
+
   const name = userProfile?.[0]?.name || 'Publicador';
-  const cursosBiblicos = visits?.filter(v => v.isRecurringStudy).length || 0;
 
   const currentMonthString = format(new Date(), 'yyyy-MM');
+
+  const cursosBiblicos = useMemo(() => {
+    if (!monthlyStats) return 0;
+    const currentStats = monthlyStats.find(s => s.month === currentMonthString);
+    return currentStats ? currentStats.studyCount : 0;
+  }, [monthlyStats, currentMonthString]);
+
   const currentMonthHours = useMemo(() => {
     if (!timeEntries) return 0;
     return timeEntries
-      .filter(e => format(new Date(e.date), 'yyyy-MM') === currentMonthString)
+      .filter(e => format(new Date(e.date), 'yyyy-MM') === currentMonthString && !e.isCredit)
       .reduce((sum, e) => sum + e.hours, 0);
   }, [timeEntries, currentMonthString]);
 
@@ -163,13 +203,13 @@ export default function Dashboard() {
         >
           {t('registerNewVisit')}
         </Link>
-        <Link
-          to="/informe"
-          className="bg-white border border-[#e07a5f] text-[#e07a5f] flex justify-center items-center py-3 rounded-lg font-medium shadow-sm hover:bg-orange-50 transition-colors"
+        <button
+          onClick={() => setShowAddHoursModal(true)}
+          className="bg-white border border-[#e07a5f] text-[#e07a5f] flex justify-center items-center py-3 rounded-lg font-medium shadow-sm hover:bg-orange-50 transition-colors w-full"
         >
           <Plus size={18} className="mr-2" />
           {t('addHours')}
-        </Link>
+        </button>
       </div>
 
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
@@ -217,6 +257,82 @@ export default function Dashboard() {
            </div>
         )}
       </div>
+
+      {showAddHoursModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-md flex flex-col">
+            <div className="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-xl">
+              <h3 className="font-bold text-gray-700 flex items-center">
+                <Plus size={20} className="mr-2" />
+                {t('addHours')}
+              </h3>
+              <button onClick={() => setShowAddHoursModal(false)} className="text-gray-500 hover:bg-gray-200 p-1 rounded-full">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                 <div>
+                   <label className="block text-xs font-medium text-gray-700 mb-1">{t('dateOfHours')}</label>
+                   <DatePicker
+                     selected={newEntryDate}
+                     onChange={(date: Date | null) => setNewEntryDate(date)}
+                     dateFormat="dd/MM/yyyy"
+                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#e07a5f]"
+                   />
+                 </div>
+                 <div>
+                   <label className="block text-xs font-medium text-gray-700 mb-1">{t('hoursAmount')}</label>
+                   <input
+                     type="number"
+                     step="0.5"
+                     min="0"
+                     value={newEntryHours}
+                     onChange={(e) => setNewEntryHours(e.target.value)}
+                     placeholder="0.0"
+                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#e07a5f]"
+                   />
+                 </div>
+              </div>
+
+              <div className="flex items-center gap-2 mt-2">
+                <input
+                  type="checkbox"
+                  id="isCreditCheckboxDashboard"
+                  checked={isCredit}
+                  onChange={(e) => setIsCredit(e.target.checked)}
+                  className="h-4 w-4 text-[#e07a5f] focus:ring-[#e07a5f] border-gray-300 rounded"
+                />
+                <label htmlFor="isCreditCheckboxDashboard" className="text-sm font-medium text-gray-700">
+                  {t('creditHours') as string || 'Horas de crédito'}
+                </label>
+              </div>
+
+              {isCredit && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">{t('creditType') as string || 'Tipo'}</label>
+                  <select
+                    value={creditType}
+                    onChange={(e) => setCreditType(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#e07a5f]"
+                  >
+                    <option value="Betel">{t('betel') as string || 'Betel'}</option>
+                    <option value="LDC">{t('ldc') as string || 'LDC'}</option>
+                    <option value="Otro">{t('other') as string || 'Otro'}</option>
+                  </select>
+                </div>
+              )}
+              <button
+                 onClick={handleAddHours}
+                 className="w-full flex justify-center items-center py-2.5 px-4 bg-[#e07a5f] hover:bg-[#c45b42] text-white rounded-md text-sm font-medium transition-colors"
+              >
+                 <Save size={16} className="mr-2" />
+                 {t('save')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -137,12 +137,12 @@ export default function ReportView() {
         <p className="text-gray-500 text-sm mb-6">{t('currentMonth')}</p>
 
         <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col items-center justify-center">
+          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col items-center justify-center h-full">
             <Clock className="text-blue-600 mb-2" size={28} />
             <span className="text-3xl font-bold text-gray-700">{currentMonthHours}</span>
             <span className="text-xs text-gray-500 font-medium text-center">{t('totalHours')}</span>
           </div>
-          <div className="bg-green-50 p-4 rounded-xl border border-green-100 flex flex-col items-center justify-center relative">
+          <div className="bg-green-50 p-4 rounded-xl border border-green-100 flex flex-col items-center justify-center relative h-full">
             <BookOpen className="text-green-600 mb-2" size={28} />
             <span className="text-3xl font-bold text-gray-700">{currentMonthStats.studyCount}</span>
             <span className="text-xs text-gray-500 font-medium text-center">{t('totalBibleStudies')}</span>
