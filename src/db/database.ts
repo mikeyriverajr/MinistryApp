@@ -98,6 +98,7 @@ export async function importDatabase(file: File) {
   await db.import(file, {
     acceptMissingTables: true,
     acceptNameDiff: true,
-    acceptChangedPrimaryKey: true
+    acceptChangedPrimaryKey: true,
+    acceptVersionDiff: true
   });
 }
