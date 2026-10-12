@@ -95,5 +95,9 @@ export async function exportDatabase() {
 export async function importDatabase(file: File) {
   await db.delete();
   await db.open();
-  await db.import(file);
+  await db.import(file, {
+    acceptMissingTables: true,
+    acceptNameDiff: true,
+    acceptChangedPrimaryKey: true
+  });
 }

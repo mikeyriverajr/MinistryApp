@@ -152,7 +152,7 @@ export default function Settings() {
           </button>
           <input 
             type="file" 
-            accept=".json" 
+            accept=".json,application/json,text/plain"
             className="hidden" 
             ref={fileInputRef}
             onChange={handleFileChange}
