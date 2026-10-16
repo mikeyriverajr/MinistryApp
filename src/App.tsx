@@ -14,6 +14,7 @@ import InterestedPersons from './pages/InterestedPersons';
 import ReportView from './pages/ReportView';
 import { useLanguage } from './contexts/LanguageContext';
 import { ButterflyIcon } from './components/ButterflyIcon';
+import { performDailyBackup } from './db/backups';
 import { Toaster } from 'react-hot-toast';
 
 function App() {
@@ -26,6 +27,10 @@ function App() {
     const initTimer = setTimeout(() => setIsInitializing(false), 100);
     // Keep splash screen visible for at least 1.5 seconds for visual branding
     const splashTimer = setTimeout(() => setShowSplash(false), 1500);
+
+    // Attempt to perform a daily internal backup
+    performDailyBackup();
+
     return () => {
       clearTimeout(initTimer);
       clearTimeout(splashTimer);
