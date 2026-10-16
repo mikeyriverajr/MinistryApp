@@ -2,12 +2,14 @@ import { useRef, useState } from 'react';
 import { exportDatabase, importDatabase, db } from '../db/database';
 import { Download, Upload, Trash2, Clock, AlertTriangle, X } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useSettings } from '../contexts/SettingsContext';
 import { Language } from '../i18n';
 import { toast } from 'react-hot-toast';
 
 export default function Settings() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { language, setLanguage, t } = useLanguage();
+  const { timeFormat, setTimeFormat } = useSettings();
   const [backupReminder, setBackupReminder] = useState<string>(() => localStorage.getItem('backupReminder') || 'monthly');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -17,10 +19,10 @@ export default function Settings() {
     try {
       await exportDatabase();
       localStorage.setItem('lastBackupDate', new Date().toISOString());
-      toast.success('Copia de seguridad exportada');
+      toast.success(t('backupExported'));
     } catch (error) {
       console.error('Error al exportar:', error);
-      toast.error('Hubo un error al exportar la base de datos.');
+      toast.error(t('backupError'));
     }
   };
 
@@ -94,14 +96,26 @@ export default function Settings() {
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
         <div className="flex justify-between items-center mb-2">
           <h2 className="text-2xl font-bold text-gray-700">{t('settings')}</h2>
-          <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value as Language)}
-              className="text-sm border border-gray-300 rounded-md px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-[#e07a5f]"
-           >
-              <option value="es">Español</option>
-              <option value="en">English</option>
-           </select>
+          <div className="flex gap-2">
+            <select
+                value={timeFormat}
+                onChange={(e) => setTimeFormat(e.target.value as '12h' | '24h')}
+                className="text-sm border border-gray-300 rounded-md px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-[#e07a5f]"
+                title={t('timeFormat')}
+            >
+                <option value="24h">24h</option>
+                <option value="12h">12h</option>
+            </select>
+            <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value as Language)}
+                className="text-sm border border-gray-300 rounded-md px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-[#e07a5f]"
+                title={t('language')}
+            >
+                <option value="es">Español</option>
+                <option value="en">English</option>
+            </select>
+          </div>
         </div>
         <p className="text-gray-500 text-sm">{t('manageDataPrefs')}</p>
       </div>

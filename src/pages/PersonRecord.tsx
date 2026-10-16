@@ -6,6 +6,8 @@ import { ArrowLeft, Navigation, Save, Plus, Edit, Trash2, Calendar, Clock, Messa
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import { useLanguage } from '../contexts/LanguageContext';
+import { useSettings } from '../contexts/SettingsContext';
+import { formatTime } from '../utils/timeFormat';
 import { toast } from 'react-hot-toast';
 
 export default function PersonRecord() {
@@ -15,6 +17,7 @@ export default function PersonRecord() {
 
   const visit = useLiveQuery(() => db.visits.get(personId), [personId]);
   const { t } = useLanguage();
+  const { timeFormat } = useSettings();
 
   const [showAddVisit, setShowAddVisit] = useState(false);
   const [newVisitDate, setNewVisitDate] = useState<Date | null>(new Date());
@@ -347,7 +350,7 @@ END:VCALENDAR`;
                      visit.recurringStudyDayOfWeek === 2 ? t('tuesday') :
                      visit.recurringStudyDayOfWeek === 3 ? t('wednesday') :
                      visit.recurringStudyDayOfWeek === 4 ? t('thursday') :
-                     visit.recurringStudyDayOfWeek === 5 ? t('friday') : t('saturday')} a las {visit.recurringStudyTime}
+                     visit.recurringStudyDayOfWeek === 5 ? t('friday') : t('saturday')} a las {formatTime(visit.recurringStudyTime, timeFormat === '12h')}
                   </span>
                 </div>
               ) : (
@@ -431,10 +434,10 @@ END:VCALENDAR`;
                 selected={newVisitDate}
                 onChange={(date: Date | null) => setNewVisitDate(date)}
                 showTimeSelect
-                timeFormat="HH:mm"
+                timeFormat={timeFormat === '12h' ? "h:mm aa" : "HH:mm"}
                 timeIntervals={15}
                 timeCaption={t('time')}
-                dateFormat="d MMMM yyyy, h:mm aa"
+                dateFormat={timeFormat === '12h' ? "d MMMM yyyy, h:mm aa" : "d MMMM yyyy, HH:mm"}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#e07a5f]"
               />
             </div>

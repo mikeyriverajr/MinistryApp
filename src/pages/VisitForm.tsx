@@ -7,6 +7,7 @@ import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap, LayersControl } from 'react-leaflet';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useSettings } from '../contexts/SettingsContext';
 import L from 'leaflet';
 import { toast } from 'react-hot-toast';
 import 'leaflet/dist/leaflet.css';
@@ -52,6 +53,7 @@ export default function VisitForm() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const isEditing = Boolean(id);
+  const { timeFormat } = useSettings();
   const personId = id ? Number(id) : null;
 
   const existingVisit = useLiveQuery(
@@ -258,10 +260,10 @@ export default function VisitForm() {
             selected={formData.dateFound as Date}
             onChange={(date: Date | null) => handleDateChange(date, 'dateFound')}
             showTimeSelect
-            timeFormat="HH:mm"
+            timeFormat={timeFormat === '12h' ? "h:mm aa" : "HH:mm"}
             timeIntervals={15}
             timeCaption="Hora"
-            dateFormat="d MMMM yyyy, h:mm aa"
+            dateFormat={timeFormat === '12h' ? "d MMMM yyyy, h:mm aa" : "d MMMM yyyy, HH:mm"}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#e07a5f]"
             required
           />
@@ -400,10 +402,10 @@ export default function VisitForm() {
             selected={formData.nextVisitDate as Date}
             onChange={(date: Date | null) => handleDateChange(date, 'nextVisitDate')}
             showTimeSelect
-            timeFormat="HH:mm"
+            timeFormat={timeFormat === '12h' ? "h:mm aa" : "HH:mm"}
             timeIntervals={15}
             timeCaption={t('time')}
-            dateFormat="d MMMM yyyy, h:mm aa"
+            dateFormat={timeFormat === '12h' ? "d MMMM yyyy, h:mm aa" : "d MMMM yyyy, HH:mm"}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#e07a5f]"
             isClearable
             placeholderText={t('selectDateAndTime')}

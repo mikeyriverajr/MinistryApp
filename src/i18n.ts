@@ -167,12 +167,19 @@ export const translations = {
     deleteAllWarningText: "¡ATENCIÓN! Esta acción eliminará permanentemente todos tus registros, cursos bíblicos, y configuraciones de este dispositivo. No se puede deshacer.",
     confirmDeleteAll: "¿Estás seguro de que deseas eliminar absolutamente todo?",
     dataDeleted: "Datos eliminados correctamente.",
+    backupExported: "Datos exportados correctamente.",
+    backupError: "Hubo un error al exportar la base de datos.",
     backupReminderSettings: "Recordatorio de Copia de Seguridad",
     backupReminderInstructions: "Elige con qué frecuencia quieres que se te recuerde hacer una copia de seguridad.",
+    monthlyBackupPromptTitle: "Es hora de hacer una copia de seguridad",
+    monthlyBackupPromptText: "Hace tiempo que no haces una copia de tus registros. Descarga el archivo de copia de seguridad y envíatelo a ti mismo por correo electrónico o WhatsApp para guardarlo de forma segura fuera de este dispositivo.",
+    downloadBackup: "Descargar Copia de Seguridad",
+    remindMeLater: "Recordarme más tarde",
     monthly: "Mensualmente",
     threeMonths: "Cada 3 meses",
     never: "Nunca",
-    language: "Idioma"
+    language: "Idioma",
+    timeFormat: "Formato de Hora"
   },
   en: {
     // General
@@ -342,12 +349,19 @@ export const translations = {
     deleteAllWarningText: "WARNING! This action will permanently delete all your records, Bible courses, and settings from this device. It cannot be undone.",
     confirmDeleteAll: "Are you sure you want to delete absolutely everything?",
     dataDeleted: "Data deleted successfully.",
+    backupExported: "Data exported successfully.",
+    backupError: "There was an error exporting the database.",
     backupReminderSettings: "Backup Reminder",
     backupReminderInstructions: "Choose how often you want to be reminded to create a backup.",
+    monthlyBackupPromptTitle: "Time for a Backup",
+    monthlyBackupPromptText: "It's been a while since you backed up your records. Please download your backup file and share it with yourself via email or WhatsApp to keep it safe outside this device.",
+    downloadBackup: "Download Backup",
+    remindMeLater: "Remind me later",
     monthly: "Monthly",
     threeMonths: "Every 3 months",
     never: "Never",
-    language: "Language"
+    language: "Language",
+    timeFormat: "Time Format"
   }
 };
 

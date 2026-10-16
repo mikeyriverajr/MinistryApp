@@ -4,8 +4,11 @@ import { db } from '../db/database';
 import { Link, useNavigate } from 'react-router-dom';
 import { Clock, BookOpen, Plus, Save, X } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useSettings } from '../contexts/SettingsContext';
 import { format } from 'date-fns';
 import DatePicker from 'react-datepicker';
+import { exportDatabase } from '../db/database';
+import { formatTimeFromDate, formatTime } from '../utils/timeFormat';
 import "react-datepicker/dist/react-datepicker.css";
 import { toast } from 'react-hot-toast';
 
@@ -20,6 +23,7 @@ export default function Dashboard() {
   const visits = useLiveQuery(() => db.visits.toArray());
   const timeEntries = useLiveQuery(() => db.timeEntries.toArray());
   const { t } = useLanguage();
+  const { timeFormat } = useSettings();
 
   const monthlyStats = useLiveQuery(() => db.monthlyStats.toArray());
 
@@ -67,9 +71,10 @@ export default function Dashboard() {
 
   const backupReminder = localStorage.getItem('backupReminder') || 'monthly';
   const lastBackupDate = localStorage.getItem('lastBackupDate');
+  const [isBackupDismissed, setIsBackupDismissed] = useState(false);
 
   const showBackupReminder = React.useMemo(() => {
-    if (backupReminder === 'never') return false;
+    if (backupReminder === 'never' || isBackupDismissed) return false;
     if (!lastBackupDate) return true;
 
     const last = new Date(lastBackupDate).getTime();
@@ -79,7 +84,19 @@ export default function Dashboard() {
     if (backupReminder === 'monthly' && daysSince > 30) return true;
     if (backupReminder === '3months' && daysSince > 90) return true;
     return false;
-  }, [backupReminder, lastBackupDate]);
+  }, [backupReminder, lastBackupDate, isBackupDismissed]);
+
+  const handleDownloadBackup = async () => {
+    try {
+      await exportDatabase();
+      localStorage.setItem('lastBackupDate', new Date().toISOString());
+      toast.success(t('backupExported'));
+      setIsBackupDismissed(true);
+    } catch (error) {
+      console.error('Error al exportar:', error);
+      toast.error(t('backupError'));
+    }
+  };
 
   const todaysVisits = React.useMemo(() => {
     if (!visits) return [];
@@ -161,14 +178,27 @@ export default function Dashboard() {
   return (
     <div className="space-y-6 pb-20">
       {showBackupReminder && (
-        <div className="bg-blue-50 p-4 rounded-xl shadow-sm border border-blue-100 flex items-start justify-between">
-          <div>
-            <h4 className="font-bold text-blue-800 text-sm">Recordatorio de Copia de Seguridad</h4>
-            <p className="text-xs text-blue-600 mt-1">Hace tiempo que no haces una copia de tus registros.</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-md flex flex-col p-6 space-y-4">
+            <h3 className="font-bold text-xl text-blue-800">{t('monthlyBackupPromptTitle')}</h3>
+            <p className="text-sm text-gray-700">
+              {t('monthlyBackupPromptText')}
+            </p>
+            <div className="flex flex-col space-y-2 mt-4">
+              <button
+                onClick={handleDownloadBackup}
+                className="w-full bg-[#e07a5f] text-white py-3 rounded-lg font-medium shadow-sm hover:bg-[#c45b42] transition-colors"
+              >
+                {t('downloadBackup')}
+              </button>
+              <button
+                onClick={() => setIsBackupDismissed(true)}
+                className="w-full bg-gray-100 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+              >
+                {t('remindMeLater')}
+              </button>
+            </div>
           </div>
-          <Link to="/settings" className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-800 font-medium transition-colors">
-            Ir a Ajustes
-          </Link>
         </div>
       )}
 
@@ -229,18 +259,18 @@ export default function Dashboard() {
                    });
                    if (todayExc) {
                       const d = new Date(todayExc.newDate);
-                      timeStr = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+                      timeStr = formatTimeFromDate(d, timeFormat === '12h');
                    }
                 }
 
                 if (timeStr === t('hourToBeDefined') && visit.isRecurringStudy && visit.recurringStudyDayOfWeek === today.getDay() && visit.recurringStudyTime) {
-                   timeStr = visit.recurringStudyTime;
+                   timeStr = formatTime(visit.recurringStudyTime, timeFormat === '12h');
                 }
 
                 if (timeStr === t('hourToBeDefined') && visit.nextVisitDate) {
                    const d = new Date(visit.nextVisitDate);
                    if (d.getDate() === today.getDate() && d.getMonth() === today.getMonth()) {
-                      timeStr = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+                      timeStr = formatTimeFromDate(d, timeFormat === '12h');
                    }
                 }
 

@@ -5,11 +5,14 @@ import { format, startOfWeek, addDays, subDays, isSameDay } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useSettings } from '../contexts/SettingsContext';
+import { formatTimeFromDate, formatTime } from '../utils/timeFormat';
 
 export default function CalendarView() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const visits = useLiveQuery(() => db.visits.toArray());
   const { t, language } = useLanguage();
+  const { timeFormat } = useSettings();
   const locale = language === 'es' ? es : enUS;
 
   // Generate a week view centered around the selected date
@@ -164,17 +167,17 @@ export default function CalendarView() {
                  const exc = event.customDates.find(d => isSameDay(new Date(d.newDate), selectedDate));
                  if (exc) {
                     const d = new Date(exc.newDate);
-                    time = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+                    time = formatTimeFromDate(d, timeFormat === '12h');
                  }
               }
 
               if (time === t('hourToBeDefined') && event.isRecurringStudy && selectedDate.getDay() === event.recurringStudyDayOfWeek && event.recurringStudyTime) {
-                 time = event.recurringStudyTime;
+                 time = formatTime(event.recurringStudyTime, timeFormat === '12h');
               }
 
               if (time === t('hourToBeDefined') && event.nextVisitDate && isSameDay(new Date(event.nextVisitDate), selectedDate)) {
                  const d = new Date(event.nextVisitDate);
-                 time = `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+                 time = formatTimeFromDate(d, timeFormat === '12h');
               }
 
               const isRecurringToday = event.isRecurringStudy &&
