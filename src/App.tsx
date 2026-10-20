@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from './db/database';
+import { db, requestPersistentStorage } from './db/database';
 import SetupWizard from './components/SetupWizard';
 import Navigation from './components/Navigation';
 import Dashboard from './pages/Dashboard';
@@ -25,10 +25,12 @@ function App() {
 
   useEffect(() => {
     const initTimer = setTimeout(() => setIsInitializing(false), 100);
-    // Keep splash screen visible for at least 1.5 seconds for visual branding
-    const splashTimer = setTimeout(() => setShowSplash(false), 1500);
+    const splashTimer = setTimeout(() => setShowSplash(false), 1200);
 
-    // Attempt to perform a daily internal backup
+    // Request browser persistent storage so OS doesn't evict IndexedDB
+    requestPersistentStorage();
+
+    // Perform daily internal snapshot if data exists
     performDailyBackup();
 
     return () => {
@@ -39,7 +41,7 @@ function App() {
 
   if (isInitializing || userProfile === undefined || showSplash) {
     return (
-      <div className="min-h-screen bg-slate-700 flex flex-col items-center justify-center text-[#e07a5f]">
+      <div className="min-h-screen bg-slate-800 dark:bg-slate-950 flex flex-col items-center justify-center text-primary">
         <div className="animate-pulse flex flex-col items-center">
           <ButterflyIcon size={80} className="mb-4" />
           <h1 className="text-4xl font-bold tracking-wider">Morfo</h1>
@@ -52,12 +54,12 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-slate-50 flex flex-col">
-        <header className="bg-slate-700 border-b-2 border-[#e07a5f] text-white p-4 text-center font-bold text-xl sticky top-0 z-50 shadow-md">
-          {t('appTitle')}
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex flex-col transition-colors">
+        <header className="bg-slate-800 dark:bg-slate-900 border-b-2 border-primary text-white h-14 px-4 flex items-center justify-center font-bold text-xl sticky top-0 z-40 shadow-sm">
+          <span className="truncate">{t('appTitle')}</span>
         </header>
         
-        <main className="flex-1 p-4 overflow-y-auto pb-24">
+        <main className="flex-1 w-full max-w-4xl mx-auto p-4 overflow-y-auto pb-24">
           {!isSetupComplete ? (
             <SetupWizard onComplete={() => {}} />
           ) : (

@@ -9,8 +9,8 @@ sw.addEventListener('push', (event) => {
   const title = data.title || 'Recordatorio de Ministerio';
   const options = {
     body: data.body || 'Tienes una revisita o estudio programado.',
-    icon: '/vite.svg',
-    badge: '/vite.svg',
+    icon: '/pwa-192x192.png',
+    badge: '/pwa-64x64.png',
   };
 
   event.waitUntil(sw.registration.showNotification(title, options));
@@ -18,5 +18,5 @@ sw.addEventListener('push', (event) => {
 
 sw.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  event.waitUntil(sw.clients.openWindow('/calendar'));
+  event.waitUntil(sw.clients.openWindow('/#/calendar'));
 });

@@ -1,8 +1,15 @@
 @import "tailwindcss";
 
-@theme {
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
   --color-primary: #e07a5f;
   --color-primary-dark: #c45b42;
+}
+
+@theme inline {
+  --color-primary: var(--color-primary);
+  --color-primary-dark: var(--color-primary-dark);
 }
 
 body {
@@ -12,5 +19,54 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f3f4f6;
+  background-color: #f8fafc;
+  color: #1e293b;
+}
+
+html.dark body {
+  background-color: #0f172a;
+  color: #f1f5f9;
+}
+
+/* Dark mode overrides for react-datepicker and leaflet popups */
+html.dark .react-datepicker {
+  background-color: #1e293b;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+
+html.dark .react-datepicker__header {
+  background-color: #0f172a;
+  border-bottom-color: #334155;
+}
+
+html.dark .react-datepicker__current-month,
+html.dark .react-datepicker-time__header,
+html.dark .react-datepicker__day-name,
+html.dark .react-datepicker__day,
+html.dark .react-datepicker__time-name {
+  color: #f1f5f9;
+}
+
+html.dark .react-datepicker__day:hover,
+html.dark .react-datepicker__time-container .react-datepicker__time .react-datepicker__time-box ul.react-datepicker__time-list li.react-datepicker__time-list-item:hover {
+  background-color: #334155;
+  color: #ffffff;
+}
+
+html.dark .react-datepicker__time-container,
+html.dark .react-datepicker__time-container .react-datepicker__time {
+  background-color: #1e293b;
+  border-left-color: #334155;
+}
+
+html.dark .leaflet-popup-content-wrapper,
+html.dark .leaflet-popup-tip {
+  background-color: #1e293b;
+  color: #f1f5f9;
+}
+
+.custom-svg-pin {
+  background: transparent;
+  border: none;
 }

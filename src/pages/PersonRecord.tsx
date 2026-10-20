@@ -1,10 +1,23 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, FollowUpVisit } from '../db/database';
-import { ArrowLeft, Navigation, Save, Plus, Edit, Trash2, Calendar, Clock, MessageCircle } from 'lucide-react';
+import { db, FollowUpVisit, incrementPendingBackupChanges } from '../db/database';
+import {
+  ArrowLeft,
+  Navigation,
+  Save,
+  Plus,
+  Edit,
+  Trash2,
+  Calendar,
+  Clock,
+  MessageCircle,
+  AlertTriangle,
+  X,
+} from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
+import { isSameDay } from 'date-fns';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { formatTime } from '../utils/timeFormat';
@@ -22,31 +35,33 @@ export default function PersonRecord() {
   const [showAddVisit, setShowAddVisit] = useState(false);
   const [newVisitDate, setNewVisitDate] = useState<Date | null>(new Date());
   const [newVisitNotes, setNewVisitNotes] = useState('');
+  const [scheduledNextVisitDate, setScheduledNextVisitDate] = useState<Date | null>(null);
+
+  const [editingFollowUpId, setEditingFollowUpId] = useState<string | null>(null);
+  const [editFollowUpDate, setEditFollowUpDate] = useState<Date | null>(new Date());
+  const [editFollowUpNotes, setEditFollowUpNotes] = useState('');
+  const [deletingFollowUpId, setDeletingFollowUpId] = useState<string | null>(null);
+
+  const [showDeletePersonModal, setShowDeletePersonModal] = useState(false);
 
   const [isChangingSchedule, setIsChangingSchedule] = useState(false);
   const [newScheduleTime, setNewScheduleTime] = useState('');
   const [newScheduleDay, setNewScheduleDay] = useState(0);
 
   if (!visit) {
-    return <div className="p-4">{t('loading')}</div>;
+    return <div className="p-4 text-slate-600 dark:text-slate-300">{t('loading')}</div>;
   }
 
-  const handleNavigate = () => {
-    if (visit.latitude && visit.longitude) {
-      window.open(`https://www.google.com/maps/dir/?api=1&destination=${visit.latitude},${visit.longitude}`, '_blank');
-    } else {
-      toast.error(t('noLocationSaved'));
-    }
-  };
-
-  const handleDelete = async () => {
-    if (window.confirm(t('deleteWarning'))) {
-      try {
-        await db.visits.delete(personId);
-        navigate('/');
-      } catch (error) {
-        console.error('Error deleting record:', error);
-      }
+  const confirmDeletePerson = async () => {
+    setShowDeletePersonModal(false);
+    try {
+      await db.visits.delete(personId);
+      incrementPendingBackupChanges();
+      toast.success(t('deleteEntry'));
+      navigate('/');
+    } catch (error) {
+      console.error('Error deleting record:', error);
+      toast.error(t('deleteError'));
     }
   };
 
@@ -63,49 +78,98 @@ export default function PersonRecord() {
     };
 
     const currentFollowUps = visit.followUpVisits || [];
-
-    await db.visits.update(personId, {
+    const updates: Partial<typeof visit> = {
       followUpVisits: [...currentFollowUps, newFollowUp],
       updatedAt: new Date()
-    });
+    };
+
+    if (scheduledNextVisitDate) {
+      updates.nextVisitDate = scheduledNextVisitDate;
+    }
+
+    await db.visits.update(personId, updates);
+    incrementPendingBackupChanges();
 
     setShowAddVisit(false);
     setNewVisitDate(new Date());
     setNewVisitNotes('');
+    setScheduledNextVisitDate(null);
+    toast.success(t('saveSuccess'));
+  };
+
+  const startEditFollowUp = (followUp: FollowUpVisit) => {
+    setEditingFollowUpId(followUp.id);
+    setEditFollowUpDate(new Date(followUp.date));
+    setEditFollowUpNotes(followUp.notes);
+  };
+
+  const handleSaveEditFollowUp = async () => {
+    if (!editingFollowUpId || !editFollowUpDate || !editFollowUpNotes.trim()) {
+      toast.error(t('enterDateAndNotes'));
+      return;
+    }
+
+    const updatedList = (visit.followUpVisits || []).map(f =>
+      f.id === editingFollowUpId
+        ? { ...f, date: editFollowUpDate, notes: editFollowUpNotes.trim() }
+        : f
+    );
+
+    await db.visits.update(personId, {
+      followUpVisits: updatedList,
+      updatedAt: new Date()
+    });
+    incrementPendingBackupChanges();
+    setEditingFollowUpId(null);
+    toast.success(t('updateSuccess'));
+  };
+
+  const confirmDeleteFollowUp = async () => {
+    if (!deletingFollowUpId) return;
+    const updatedList = (visit.followUpVisits || []).filter(f => f.id !== deletingFollowUpId);
+    await db.visits.update(personId, {
+      followUpVisits: updatedList,
+      updatedAt: new Date()
+    });
+    incrementPendingBackupChanges();
+    setDeletingFollowUpId(null);
+    toast.success(t('deleteEntry'));
   };
 
   const handleScheduleChange = async (onlyNextTime: boolean) => {
     if (!newScheduleTime) return;
 
     if (onlyNextTime) {
-      // Create a custom date exception for the next occurrence
-      const today = new Date();
-      let nextDate = new Date(today.getTime());
+      const now = new Date();
+      const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-      // Find next occurrence of the *new* day
-      nextDate.setDate(today.getDate() + (newScheduleDay + 7 - today.getDay()) % 7);
-      if (nextDate.getDay() === today.getDay() && nextDate < today) {
+      // Compute the upcoming occurrence of the original recurring study day
+      const origDay = visit.recurringStudyDayOfWeek ?? 0;
+      const daysUntilOrig = (origDay + 7 - todayMidnight.getDay()) % 7;
+      const originalNextDate = new Date(todayMidnight);
+      originalNextDate.setDate(todayMidnight.getDate() + daysUntilOrig);
+
+      // Compute the upcoming occurrence of the newly selected exception day
+      const daysUntilNew = (newScheduleDay + 7 - todayMidnight.getDay()) % 7;
+      const nextDate = new Date(todayMidnight);
+      nextDate.setDate(todayMidnight.getDate() + daysUntilNew);
+
+      const [hours, minutes] = newScheduleTime.split(':').map(Number);
+      nextDate.setHours(hours || 0, minutes || 0, 0, 0);
+
+      if (nextDate < now) {
         nextDate.setDate(nextDate.getDate() + 7);
       }
 
-      // Add time
-      const [hours, minutes] = newScheduleTime.split(':');
-      nextDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      // Filter out expired exceptions and any existing exception for the same original date
+      const existingValid = (visit.customDates || []).filter(
+        d => new Date(d.newDate) >= todayMidnight && !isSameDay(new Date(d.originalDate), originalNextDate)
+      );
 
-      // Calculate original next date to map from
-      let originalNextDate = new Date(today.getTime());
-      const origDay = visit.recurringStudyDayOfWeek || 0;
-      originalNextDate.setDate(today.getDate() + (origDay + 7 - today.getDay()) % 7);
-      if (originalNextDate.getDay() === today.getDay() && originalNextDate < today) {
-        originalNextDate.setDate(originalNextDate.getDate() + 7);
-      }
+      existingValid.push({ originalDate: originalNextDate, newDate: nextDate });
 
-      const customDates = visit.customDates || [];
-      customDates.push({ originalDate: originalNextDate, newDate: nextDate });
-
-      await db.visits.update(personId, { customDates, updatedAt: new Date() });
+      await db.visits.update(personId, { customDates: existingValid, updatedAt: new Date() });
     } else {
-      // Change for all future
       await db.visits.update(personId, {
         recurringStudyDayOfWeek: newScheduleDay,
         recurringStudyTime: newScheduleTime,
@@ -113,7 +177,9 @@ export default function PersonRecord() {
       });
     }
 
+    incrementPendingBackupChanges();
     setIsChangingSchedule(false);
+    toast.success(t('updateSuccess'));
   };
 
   const getNextEventDate = () => {
@@ -135,7 +201,6 @@ export default function PersonRecord() {
       }
     }
 
-    // Check for exceptions
     if (visit.customDates) {
       const upcomingException = visit.customDates.find(d => new Date(d.newDate) >= new Date());
       if (upcomingException) {
@@ -149,7 +214,7 @@ export default function PersonRecord() {
     const nextDate = getNextEventDate();
     if (!nextDate || !visit) return;
 
-    const endDate = new Date(nextDate.getTime() + 60 * 60 * 1000); // 1 hour duration
+    const endDate = new Date(nextDate.getTime() + 60 * 60 * 1000);
 
     const formatDate = (date: Date) => {
       return date.toISOString().replace(/-|:|\.\d+/g, '');
@@ -160,7 +225,7 @@ VERSION:2.0
 BEGIN:VEVENT
 DTSTART:${formatDate(nextDate)}
 DTEND:${formatDate(endDate)}
-SUMMARY:Visita: ${visit.name}
+SUMMARY:${t('visit')}: ${visit.name}
 DESCRIPTION:${visit.generalNotes || visit.houseDescription || ''}
 LOCATION:${visit.latitude ? `${visit.latitude},${visit.longitude}` : ''}
 END:VEVENT
@@ -174,71 +239,68 @@ END:VCALENDAR`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   };
 
-  const shareViaWhatsApp = () => {
-    if (!visit) return;
-
+  const getWhatsAppShareUrl = () => {
     let text = `*${visit.name}*\n\n`;
     if (visit.generalNotes || visit.houseDescription) {
       text += `${visit.generalNotes || visit.houseDescription}\n\n`;
     }
 
     const dateFoundStr = new Date(visit.dateFound).toLocaleDateString();
-    text += `Encontrado: ${dateFoundStr}\n`;
+    text += `${t('found')}: ${dateFoundStr}\n`;
 
     if (visit.latitude && visit.longitude) {
       const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${visit.latitude},${visit.longitude}`;
-      text += `\nUbicación:\n${mapsUrl}`;
+      text += `\n${t('gpsLocation')}:\n${mapsUrl}`;
     }
 
-    const encodedText = encodeURIComponent(text);
-    window.open(`https://wa.me/?text=${encodedText}`, '_blank');
+    return `https://wa.me/?text=${encodeURIComponent(text)}`;
   };
 
-  const openGoogleCalendar = () => {
+  const getGoogleCalendarUrl = () => {
     const nextDate = getNextEventDate();
-    if (!nextDate || !visit) return;
+    if (!nextDate || !visit) return '#';
 
-    const endDate = new Date(nextDate.getTime() + 60 * 60 * 1000); // 1 hour duration
-
-    const formatDate = (date: Date) => {
-      return date.toISOString().replace(/-|:|\.\d+/g, '');
-    };
+    const endDate = new Date(nextDate.getTime() + 60 * 60 * 1000);
+    const formatDate = (date: Date) => date.toISOString().replace(/-|:|\.\d+/g, '');
 
     const url = new URL('https://calendar.google.com/calendar/render');
     url.searchParams.append('action', 'TEMPLATE');
-    url.searchParams.append('text', `Visita: ${visit.name}`);
+    url.searchParams.append('text', `${t('visit')}: ${visit.name}`);
     url.searchParams.append('dates', `${formatDate(nextDate)}/${formatDate(endDate)}`);
     url.searchParams.append('details', visit.generalNotes || visit.houseDescription || '');
     if (visit.latitude && visit.longitude) {
       url.searchParams.append('location', `${visit.latitude},${visit.longitude}`);
     }
-
-    window.open(url.toString(), '_blank');
+    return url.toString();
   };
 
   const nextEventDate = getNextEventDate();
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-20">
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-        <div className="flex items-center mb-6">
-          <button onClick={() => navigate(-1)} className="mr-3 text-gray-500 hover:text-gray-700">
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-xs border border-slate-200/80 dark:border-slate-800">
+        <div className="flex items-center mb-5">
+          <button
+            onClick={() => navigate(-1)}
+            className="min-h-[44px] min-w-[44px] -ml-2 mr-1 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 rounded-full"
+          >
             <ArrowLeft size={24} />
           </button>
-          <h2 className="text-2xl font-bold text-gray-700 flex-1">{visit.name}</h2>
-          <div className="flex space-x-2">
+          <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 flex-1 truncate">{visit.name}</h2>
+          <div className="flex space-x-1">
             <button
               onClick={() => navigate(`/edit/${personId}`)}
-              className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
               title={t('edit')}
             >
               <Edit size={20} />
             </button>
             <button
-              onClick={handleDelete}
-              className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors"
+              onClick={() => setShowDeletePersonModal(true)}
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center text-red-500 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-full transition-colors"
               title={t('delete')}
             >
               <Trash2 size={20} />
@@ -249,82 +311,104 @@ END:VCALENDAR`;
         <div className="mb-6 flex flex-wrap gap-2">
           {nextEventDate && (
             <>
-              <button
-                onClick={openGoogleCalendar}
-                className="flex items-center text-xs bg-red-50 text-red-700 px-3 py-1.5 rounded-lg hover:bg-red-100 font-medium transition-colors border border-red-200"
+              <a
+                href={getGoogleCalendarUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="min-h-[38px] flex items-center text-xs bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 px-3 py-1.5 rounded-xl hover:bg-red-100 font-medium transition-colors border border-red-200 dark:border-red-800/60"
               >
                 <Calendar size={14} className="mr-1.5" />
-                {t('googleCalendar', { defaultValue: 'Google Calendar' })}
-              </button>
+                {t('googleCalendar')}
+              </a>
               <button
                 onClick={generateICS}
-                className="flex items-center text-xs bg-blue-50 text-blue-800 px-3 py-1.5 rounded-lg hover:bg-blue-100 font-medium transition-colors border border-blue-200"
+                className="min-h-[38px] flex items-center text-xs bg-blue-50 dark:bg-blue-950/50 text-blue-800 dark:text-blue-300 px-3 py-1.5 rounded-xl hover:bg-blue-100 font-medium transition-colors border border-blue-200 dark:border-blue-800/60"
               >
                 <Calendar size={14} className="mr-1.5" />
-                {t('downloadICS', { defaultValue: 'Descargar .ics' })}
+                {t('downloadICS')}
               </button>
             </>
           )}
-          <button
-            onClick={shareViaWhatsApp}
-            className="flex items-center text-xs bg-green-50 text-green-700 px-3 py-1.5 rounded-lg hover:bg-green-100 font-medium transition-colors border border-green-200"
+          <a
+            href={getWhatsAppShareUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="min-h-[38px] flex items-center text-xs bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 px-3 py-1.5 rounded-xl hover:bg-emerald-100 font-medium transition-colors border border-emerald-200 dark:border-emerald-800/60"
           >
             <MessageCircle size={14} className="mr-1.5" />
-            Compartir por WhatsApp
-          </button>
-        </div>
-
-        {visit.latitude && visit.longitude && (
-          <div className="mb-4">
-            <button
-              onClick={handleNavigate}
-              className="flex items-center text-sm bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-100 font-medium transition-colors"
+            {t('shareViaWhatsApp')}
+          </a>
+          {visit.latitude && visit.longitude && (
+            <a
+              href={`https://www.google.com/maps/dir/?api=1&destination=${visit.latitude},${visit.longitude}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="min-h-[38px] flex items-center text-xs bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 px-3 py-1.5 rounded-xl hover:bg-slate-200 font-medium transition-colors border border-slate-200 dark:border-slate-700"
             >
-              <Navigation size={16} className="mr-1.5" />
+              <Navigation size={14} className="mr-1.5 text-primary" />
               {t('navigateMap')}
-            </button>
-          </div>
-        )}
+            </a>
+          )}
+        </div>
 
         <div className="space-y-4">
           {visit.phoneNumber && (
             <div>
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('phoneNumber') as string || 'Teléfono'}</h3>
+              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">{t('phoneNumber')}</h3>
               <div className="flex items-center gap-3">
-                <p className="text-gray-700">{visit.phoneNumber}</p>
+                <p className="text-slate-800 dark:text-slate-100 tabular-nums">{visit.phoneNumber}</p>
                 <a
                   href={`https://wa.me/${visit.phoneNumber.replace(/\D/g, '')}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center text-xs bg-green-100 text-green-700 hover:bg-green-200 px-2 py-1 rounded font-medium transition-colors"
+                  className="inline-flex items-center text-xs bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200 px-2.5 py-1 rounded-lg font-medium transition-colors"
                 >
-                  {t('sendWhatsApp') as string || 'Enviar WhatsApp'}
+                  {t('sendWhatsApp')}
                 </a>
               </div>
             </div>
           )}
 
           <div>
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('houseDescription')}</h3>
-            <p className="text-gray-700 bg-gray-50 p-3 rounded-lg border border-gray-100">{visit.houseDescription || t('noDescription')}</p>
+            <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">{t('houseDescription')}</h3>
+            <p className="text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200/70 dark:border-slate-700/70 text-sm">
+              {visit.houseDescription || t('noDescription')}
+            </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4 pt-1">
             <div>
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('interestLevel')}</h3>
-              <p className="text-gray-700 font-medium">{visit.interestLevel === 'Alto' ? t('high') : visit.interestLevel === 'Medio' ? t('medium') : t('low')}</p>
+              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">{t('interestLevel')}</h3>
+              <p className="text-slate-800 dark:text-slate-100 font-semibold">
+                {visit.interestLevel === 'Alto' ? t('high') : visit.interestLevel === 'Medio' ? t('medium') : t('low')}
+              </p>
             </div>
             <div>
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('bibleCourse')}</h3>
-              <p className="text-gray-700 font-medium">{visit.isRecurringStudy ? t('yes') : t('no')}</p>
+              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">{t('bibleCourse')}</h3>
+              <p className="text-slate-800 dark:text-slate-100 font-semibold">{visit.isRecurringStudy ? t('yes') : t('no')}</p>
             </div>
           </div>
+
+          {visit.nextVisitDate && (
+            <div className="pt-1">
+              <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">{t('sortNextVisit')}</h3>
+              <p className="text-primary font-semibold text-sm tabular-nums">
+                {new Date(visit.nextVisitDate).toLocaleString(undefined, {
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </p>
+            </div>
+          )}
 
           {visit.isRecurringStudy && (
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+            <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
               <div className="flex justify-between items-center mb-2">
-                <h3 className="text-xs font-semibold text-blue-800 uppercase tracking-wider flex items-center">
-                  <Calendar size={14} className="mr-1" />
+                <h3 className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center">
+                  <Calendar size={14} className="mr-1.5 text-primary" />
                   {t('regularTime')}
                 </h3>
                 {!isChangingSchedule && (
@@ -334,7 +418,7 @@ END:VCALENDAR`;
                       setNewScheduleTime(visit.recurringStudyTime || '10:00');
                       setIsChangingSchedule(true);
                     }}
-                    className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded hover:bg-blue-200"
+                    className="text-xs bg-white dark:bg-slate-800 text-primary border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-lg hover:border-primary font-medium"
                   >
                     {t('changeSchedule')}
                   </button>
@@ -342,24 +426,24 @@ END:VCALENDAR`;
               </div>
 
               {!isChangingSchedule ? (
-                <div className="flex items-center text-blue-900 font-medium">
-                  <Clock size={16} className="mr-2 text-blue-600" />
+                <div className="flex items-center text-slate-800 dark:text-slate-100 font-medium text-sm">
+                  <Clock size={16} className="mr-2 text-primary" />
                   <span>
                     {visit.recurringStudyDayOfWeek === 0 ? t('sunday') :
                      visit.recurringStudyDayOfWeek === 1 ? t('monday') :
                      visit.recurringStudyDayOfWeek === 2 ? t('tuesday') :
                      visit.recurringStudyDayOfWeek === 3 ? t('wednesday') :
                      visit.recurringStudyDayOfWeek === 4 ? t('thursday') :
-                     visit.recurringStudyDayOfWeek === 5 ? t('friday') : t('saturday')} a las {formatTime(visit.recurringStudyTime, timeFormat === '12h')}
+                     visit.recurringStudyDayOfWeek === 5 ? t('friday') : t('saturday')} {t('atTime')} {formatTime(visit.recurringStudyTime, timeFormat === '12h')}
                   </span>
                 </div>
               ) : (
-                <div className="mt-3 space-y-3 bg-white p-3 rounded-md border border-blue-200">
+                <div className="mt-3 space-y-3 bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700">
                   <div className="grid grid-cols-2 gap-2">
                     <select
                       value={newScheduleDay}
                       onChange={(e) => setNewScheduleDay(Number(e.target.value))}
-                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#e07a5f]"
+                      className="w-full px-2.5 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
                     >
                       <option value="0">{t('sunday')}</option>
                       <option value="1">{t('monday')}</option>
@@ -373,25 +457,25 @@ END:VCALENDAR`;
                       type="time"
                       value={newScheduleTime}
                       onChange={(e) => setNewScheduleTime(e.target.value)}
-                      className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#e07a5f]"
+                      className="w-full px-2.5 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
                     />
                   </div>
-                  <div className="flex justify-end space-x-2 pt-2 border-t border-gray-100">
+                  <div className="flex flex-wrap justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                     <button
                       onClick={() => setIsChangingSchedule(false)}
-                      className="text-xs px-2 py-1 text-gray-600 hover:bg-gray-100 rounded"
+                      className="min-h-[36px] text-xs px-3 py-1.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
                     >
                       {t('cancel')}
                     </button>
                     <button
                       onClick={() => handleScheduleChange(true)}
-                      className="text-xs px-2 py-1 bg-yellow-100 text-yellow-700 hover:bg-yellow-200 rounded font-medium"
+                      className="min-h-[36px] text-xs px-3 py-1.5 bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 hover:bg-amber-200 rounded-lg font-medium"
                     >
                       {t('nextTimeOnly')}
                     </button>
                     <button
                       onClick={() => handleScheduleChange(false)}
-                      className="text-xs px-2 py-1 bg-[#e07a5f] text-white hover:bg-[#c45b42] rounded font-medium"
+                      className="min-h-[36px] text-xs px-3 py-1.5 bg-primary text-white hover:bg-primary-dark rounded-lg font-medium"
                     >
                       {t('allFutureEvents')}
                     </button>
@@ -399,14 +483,27 @@ END:VCALENDAR`;
                 </div>
               )}
 
-              {visit.customDates && visit.customDates.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-blue-200">
-                  <h4 className="text-xs font-semibold text-blue-800 mb-1">{t('exceptionDate')}</h4>
-                  {visit.customDates.filter(d => new Date(d.newDate) >= new Date()).map((d, i) => (
-                    <div key={i} className="text-sm text-blue-900 bg-white px-2 py-1 rounded inline-block mr-2 mb-2 border border-blue-100">
-                      {new Date(d.newDate).toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                    </div>
-                  ))}
+              {visit.customDates && visit.customDates.filter(d => new Date(d.newDate) >= new Date()).length > 0 && (
+                <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                  <h4 className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5">{t('exceptionDate')}</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {visit.customDates
+                      .filter(d => new Date(d.newDate) >= new Date())
+                      .map((d, i) => (
+                        <span
+                          key={i}
+                          className="text-xs text-primary font-medium bg-white dark:bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 tabular-nums"
+                        >
+                          {new Date(d.newDate).toLocaleString(undefined, {
+                            weekday: 'short',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -414,22 +511,22 @@ END:VCALENDAR`;
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-xs border border-slate-200/80 dark:border-slate-800">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-gray-700">{t('visitHistory')}</h3>
+          <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">{t('visitHistory')}</h3>
           <button
             onClick={() => setShowAddVisit(!showAddVisit)}
-            className="flex items-center text-sm bg-[#e07a5f] text-white px-3 py-1.5 rounded-lg hover:bg-[#c45b42] font-medium transition-colors"
+            className="min-h-[40px] flex items-center text-sm bg-primary text-white px-3.5 py-2 rounded-xl hover:bg-primary-dark font-medium transition-colors"
           >
-            <Plus size={16} className="mr-1" />
+            <Plus size={16} className="mr-1.5" />
             {t('newVisit')}
           </button>
         </div>
 
         {showAddVisit && (
-          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6 space-y-4">
+          <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-xl border border-slate-200 dark:border-slate-700 mb-6 space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('date')}</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('date')}</label>
               <DatePicker
                 selected={newVisitDate}
                 onChange={(date: Date | null) => setNewVisitDate(date)}
@@ -438,62 +535,80 @@ END:VCALENDAR`;
                 timeIntervals={15}
                 timeCaption={t('time')}
                 dateFormat={timeFormat === '12h' ? "d MMMM yyyy, h:mm aa" : "d MMMM yyyy, HH:mm"}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#e07a5f]"
+                className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">{t('notes')}</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('notes')}</label>
               <textarea
                 value={newVisitNotes}
                 onChange={(e) => setNewVisitNotes(e.target.value)}
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-[#e07a5f]"
+                className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder={t('visitNotesPlaceholder')}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                {t('nextVisitDateOptional')}
+              </label>
+              <DatePicker
+                selected={scheduledNextVisitDate}
+                onChange={(date: Date | null) => setScheduledNextVisitDate(date)}
+                showTimeSelect
+                isClearable
+                placeholderText={t('selectDateAndTime')}
+                timeFormat={timeFormat === '12h' ? "h:mm aa" : "HH:mm"}
+                timeIntervals={15}
+                timeCaption={t('time')}
+                dateFormat={timeFormat === '12h' ? "d MMMM yyyy, h:mm aa" : "d MMMM yyyy, HH:mm"}
+                className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
             {!visit.isRecurringStudy && (
-              <div className="border-t border-gray-200 pt-3 mt-1">
-                 <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      onChange={async (e) => {
-                        if (e.target.checked) {
-                          const now = new Date();
-                          const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+              <div className="border-t border-slate-200 dark:border-slate-700 pt-3 mt-1">
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    onChange={async (e) => {
+                      if (e.target.checked) {
+                        const now = new Date();
+                        const timeString = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
 
-                          // Auto-increment the current month's manual Bible study count
-                          const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-                          const currentStats = await db.monthlyStats.get(monthStr);
-                          const newCount = currentStats ? currentStats.studyCount + 1 : 1;
-                          await db.monthlyStats.put({ month: monthStr, studyCount: newCount });
+                        const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+                        const currentStats = await db.monthlyStats.get(monthStr);
+                        const activeCount = await db.visits.filter(v => Boolean(v.isRecurringStudy)).count();
+                        const newCount = currentStats ? currentStats.studyCount + 1 : activeCount + 1;
+                        await db.monthlyStats.put({ month: monthStr, studyCount: newCount });
 
-                          await db.visits.update(personId, {
-                            isRecurringStudy: true,
-                            recurringStudyDayOfWeek: now.getDay(),
-                            recurringStudyTime: timeString,
-                            updatedAt: new Date()
-                          });
-                          toast.success(t('startedBibleCourse'));
-                        }
-                      }}
-                      className="mr-2 h-4 w-4 text-[#e07a5f] focus:ring-[#e07a5f] border-gray-300 rounded"
-                    />
-                    <span className="text-sm font-medium text-gray-700">{t('establishedBibleCourse')}</span>
-                 </label>
+                        await db.visits.update(personId, {
+                          isRecurringStudy: true,
+                          recurringStudyDayOfWeek: now.getDay(),
+                          recurringStudyTime: timeString,
+                          updatedAt: new Date()
+                        });
+                        incrementPendingBackupChanges();
+                        toast.success(t('startedBibleCourse'));
+                      }
+                    }}
+                    className="mr-2 h-4 w-4 accent-primary border-slate-300 rounded"
+                  />
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('establishedBibleCourse')}</span>
+                </label>
               </div>
             )}
 
             <div className="flex justify-end space-x-2 pt-2">
               <button
                 onClick={() => setShowAddVisit(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md"
+                className="min-h-[40px] px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 bg-slate-200/70 dark:bg-slate-700 hover:bg-slate-300 rounded-lg"
               >
                 {t('cancel')}
               </button>
               <button
                 onClick={handleAddFollowUp}
-                className="px-4 py-2 flex items-center text-sm font-medium text-white bg-[#e07a5f] hover:bg-[#c45b42] rounded-md"
+                className="min-h-[40px] px-4 py-2 flex items-center text-sm font-medium text-white bg-primary hover:bg-primary-dark rounded-lg"
               >
                 <Save size={16} className="mr-1.5" />
                 {t('save')}
@@ -503,41 +618,183 @@ END:VCALENDAR`;
         )}
 
         <div className="space-y-4 relative">
-          <div className="absolute left-[15px] top-4 bottom-4 w-0.5 bg-gray-200 z-0"></div>
+          <div className="absolute left-[15px] top-4 bottom-4 w-0.5 bg-slate-200 dark:bg-slate-800 z-0"></div>
 
+          {/* Initial Visit */}
           <div className="relative z-10 pl-10">
-            <div className="absolute left-0 top-1.5 w-8 h-8 rounded-full bg-blue-100 border-2 border-white flex items-center justify-center text-blue-600 shadow-sm">
-              <span className="text-xs font-bold">1</span>
+            <div className="absolute left-0 top-1.5 w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-950 border-2 border-white dark:border-slate-900 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-2xs">
+              <span className="text-xs font-bold tabular-nums">1</span>
             </div>
-            <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-              <div className="flex justify-between items-start mb-2">
-                <span className="font-semibold text-gray-700">{t('initialVisit')}</span>
-                <span className="text-xs text-gray-500 font-medium bg-gray-100 px-2 py-1 rounded">
+            <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+              <div className="flex justify-between items-baseline mb-1.5">
+                <span className="font-semibold text-slate-800 dark:text-slate-100 text-sm">{t('initialVisit')}</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
                   {new Date(visit.dateFound).toLocaleDateString()}
                 </span>
               </div>
-              <p className="text-sm text-gray-600">{visit.generalNotes || t('withoutNotes')}</p>
+              <p className="text-sm text-slate-600 dark:text-slate-300">{visit.generalNotes || t('withoutNotes')}</p>
             </div>
           </div>
 
-          {(visit.followUpVisits || []).map((followUp, index) => (
-            <div key={followUp.id} className="relative z-10 pl-10">
-              <div className="absolute left-0 top-1.5 w-8 h-8 rounded-full bg-green-100 border-2 border-white flex items-center justify-center text-green-600 shadow-sm">
-                <span className="text-xs font-bold">{index + 2}</span>
-              </div>
-              <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-                <div className="flex justify-between items-start mb-2">
-                  <span className="font-semibold text-gray-700">{t('returnVisit')}</span>
-                  <span className="text-xs text-gray-500 font-medium bg-gray-100 px-2 py-1 rounded">
-                    {new Date(followUp.date).toLocaleDateString()}
-                  </span>
+          {/* Return Visits */}
+          {(visit.followUpVisits || []).map((followUp, index) => {
+            const isEditingThis = editingFollowUpId === followUp.id;
+
+            return (
+              <div key={followUp.id} className="relative z-10 pl-10">
+                <div className="absolute left-0 top-1.5 w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-950 border-2 border-white dark:border-slate-900 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-2xs">
+                  <span className="text-xs font-bold tabular-nums">{index + 2}</span>
                 </div>
-                <p className="text-sm text-gray-600">{followUp.notes}</p>
+                <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+                  {isEditingThis ? (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{t('date')}</label>
+                        <DatePicker
+                          selected={editFollowUpDate}
+                          onChange={(d: Date | null) => setEditFollowUpDate(d)}
+                          showTimeSelect
+                          timeFormat={timeFormat === '12h' ? "h:mm aa" : "HH:mm"}
+                          timeIntervals={15}
+                          dateFormat={timeFormat === '12h' ? "d MMMM yyyy, h:mm aa" : "d MMMM yyyy, HH:mm"}
+                          className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">{t('notes')}</label>
+                        <textarea
+                          rows={2}
+                          value={editFollowUpNotes}
+                          onChange={(e) => setEditFollowUpNotes(e.target.value)}
+                          className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg"
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => setEditingFollowUpId(null)}
+                          className="min-h-[36px] px-3 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg"
+                        >
+                          {t('cancel')}
+                        </button>
+                        <button
+                          onClick={handleSaveEditFollowUp}
+                          className="min-h-[36px] px-3 py-1 text-xs font-medium text-white bg-primary hover:bg-primary-dark rounded-lg flex items-center gap-1"
+                        >
+                          <Save size={14} />
+                          {t('save')}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex justify-between items-center mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-slate-800 dark:text-slate-100 text-sm">{t('returnVisit')}</span>
+                          <span aria-hidden="true" className="text-slate-300 dark:text-slate-600">·</span>
+                          <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+                            {new Date(followUp.date).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <div className="flex items-center -mr-2">
+                          <button
+                            onClick={() => startEditFollowUp(followUp)}
+                            className="min-h-[40px] min-w-[40px] flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-full"
+                            title={t('editVisit')}
+                          >
+                            <Edit size={15} />
+                          </button>
+                          <button
+                            onClick={() => setDeletingFollowUpId(followUp.id)}
+                            className="min-h-[40px] min-w-[40px] flex items-center justify-center text-slate-400 hover:text-red-500 rounded-full"
+                            title={t('deleteVisit')}
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </div>
+                      <p className="text-sm text-slate-600 dark:text-slate-300">{followUp.notes}</p>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
+
+      {/* Delete Person Confirmation Modal */}
+      {showDeletePersonModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-lg max-w-sm w-full overflow-hidden">
+            <div className="flex justify-between items-center p-4 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center text-red-600 dark:text-red-400">
+                <AlertTriangle size={20} className="mr-2" />
+                <h3 className="font-bold">{t('delete')}</h3>
+              </div>
+              <button
+                onClick={() => setShowDeletePersonModal(false)}
+                className="min-h-[40px] min-w-[40px] flex items-center justify-center text-slate-400 hover:text-slate-600"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-4">
+              <p className="text-sm text-slate-700 dark:text-slate-300">{t('deleteWarning')}</p>
+            </div>
+            <div className="flex border-t border-slate-100 dark:border-slate-800">
+              <button
+                onClick={() => setShowDeletePersonModal(false)}
+                className="flex-1 min-h-[48px] py-3 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+              >
+                {t('cancel')}
+              </button>
+              <button
+                onClick={confirmDeletePerson}
+                className="flex-1 min-h-[48px] py-3 text-sm font-medium text-white bg-red-600 hover:bg-red-700"
+              >
+                {t('delete')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Follow-Up Visit Confirmation Modal */}
+      {deletingFollowUpId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-lg max-w-sm w-full overflow-hidden">
+            <div className="flex justify-between items-center p-4 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center text-red-600 dark:text-red-400">
+                <AlertTriangle size={20} className="mr-2" />
+                <h3 className="font-bold">{t('deleteVisit')}</h3>
+              </div>
+              <button
+                onClick={() => setDeletingFollowUpId(null)}
+                className="min-h-[40px] min-w-[40px] flex items-center justify-center text-slate-400 hover:text-slate-600"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-4">
+              <p className="text-sm text-slate-700 dark:text-slate-300">{t('deleteVisitWarning')}</p>
+            </div>
+            <div className="flex border-t border-slate-100 dark:border-slate-800">
+              <button
+                onClick={() => setDeletingFollowUpId(null)}
+                className="flex-1 min-h-[48px] py-3 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+              >
+                {t('cancel')}
+              </button>
+              <button
+                onClick={confirmDeleteFollowUp}
+                className="flex-1 min-h-[48px] py-3 text-sm font-medium text-white bg-red-600 hover:bg-red-700"
+              >
+                {t('delete')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -7,7 +7,7 @@ export interface UserProfile {
 }
 
 export interface FollowUpVisit {
-  id: string; // generate a random ID (e.g. UUID or Date.now().toString())
+  id: string;
   date: Date;
   notes: string;
 }
@@ -40,8 +40,8 @@ export interface Visit {
   recurringStudyDayOfWeek: number | null; // 0 = Domingo, 1 = Lunes, etc.
   recurringStudyTime: string | null; // e.g. "14:30"
   followUpVisits?: FollowUpVisit[];
-  skippedDates?: Date[]; // For custom exceptions
-  customDates?: { originalDate: Date, newDate: Date }[]; // If moved for just one class
+  skippedDates?: Date[];
+  customDates?: { originalDate: Date, newDate: Date }[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -74,31 +74,132 @@ export class MinistryDatabase extends Dexie {
       visits: '++id, name, dateFound, nextVisitDate, interestLevel, isRecurringStudy, phoneNumber',
       timeEntries: '++id, date, isCredit, creditType',
     }).upgrade(() => {
-      // No schema data migration strictly needed, but explicitly bumping
+      // Schema v4
     });
   }
 }
 
 export const db = new MinistryDatabase();
 
-// Helper functions for import/export
-export async function exportDatabase() {
+const PENDING_CHANGES_KEY = 'pendingBackupChanges';
+
+export function getPendingBackupChanges(): number {
+  const val = Number(localStorage.getItem(PENDING_CHANGES_KEY) || '0');
+  return isNaN(val) ? 0 : val;
+}
+
+export function incrementPendingBackupChanges(): void {
+  const current = getPendingBackupChanges();
+  localStorage.setItem(PENDING_CHANGES_KEY, String(current + 1));
+  window.dispatchEvent(new Event('morfo-backup-changes'));
+}
+
+export function resetPendingBackupChanges(): void {
+  localStorage.setItem(PENDING_CHANGES_KEY, '0');
+  localStorage.setItem('lastBackupDate', new Date().toISOString());
+  window.dispatchEvent(new Event('morfo-backup-changes'));
+}
+
+export async function requestPersistentStorage(): Promise<boolean> {
+  try {
+    if (navigator.storage && navigator.storage.persist) {
+      const isPersisted = await navigator.storage.persisted();
+      if (isPersisted) {
+        localStorage.setItem('storagePersisted', 'true');
+        return true;
+      }
+      const granted = await navigator.storage.persist();
+      localStorage.setItem('storagePersisted', String(granted));
+      return granted;
+    }
+  } catch (e) {
+    console.warn('Persistent storage check failed:', e);
+  }
+  return false;
+}
+
+export function getBackupFilename(): string {
+  return `morfo-backup-${new Date().toISOString().split('T')[0]}.json`;
+}
+
+export async function exportDatabase(): Promise<void> {
   const blob = await db.export();
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `ministerio-backup-${new Date().toISOString().split('T')[0]}.json`;
+  a.download = getBackupFilename();
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
   URL.revokeObjectURL(url);
+  resetPendingBackupChanges();
 }
 
-export async function importDatabase(file: File) {
+export async function shareDatabaseBackup(): Promise<'shared' | 'downloaded'> {
+  const blob = await db.export();
+  const filename = getBackupFilename();
+  const file = new File([blob], filename, { type: 'application/json' });
+
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    await navigator.share({
+      title: 'Morfo Backup',
+      text: `Respaldo de Morfo (${new Date().toLocaleDateString()})`,
+      files: [file],
+    });
+    resetPendingBackupChanges();
+    return 'shared';
+  }
+
+  // Fallback to direct download if Web Share with files isn't supported
+  await exportDatabase();
+  return 'downloaded';
+}
+
+export async function validateAndImportDatabase(source: File | Blob | string): Promise<void> {
+  let rawText = '';
+  if (typeof source === 'string') {
+    rawText = source.trim();
+  } else {
+    rawText = (await source.text()).trim();
+  }
+
+  if (!rawText) {
+    throw new Error('Empty backup content');
+  }
+
+  let parsed: any;
+  try {
+    parsed = JSON.parse(rawText);
+  } catch {
+    throw new Error('Invalid JSON format');
+  }
+
+  // Verify that this is a Dexie export or contains expected tables before wiping current data
+  const isValidDexie =
+    parsed &&
+    typeof parsed === 'object' &&
+    (parsed.formatName === 'dexie' ||
+      (parsed.data && Array.isArray(parsed.data.tables)) ||
+      Array.isArray(parsed.tables));
+
+  if (!isValidDexie) {
+    throw new Error('Not a valid Morfo / Dexie backup file');
+  }
+
+  const validBlob = new Blob([rawText], { type: 'application/json' });
+
   await db.delete();
   await db.open();
-  await db.import(file, {
+  await db.import(validBlob, {
     acceptMissingTables: true,
     acceptNameDiff: true,
     acceptChangedPrimaryKey: true,
     acceptVersionDiff: true
   });
+
+  resetPendingBackupChanges();
+}
+
+export async function importDatabase(file: File): Promise<void> {
+  await validateAndImportDatabase(file);
 }
