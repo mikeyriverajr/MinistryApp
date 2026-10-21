@@ -75,13 +75,18 @@ export default function Settings() {
     backupsDb.snapshots.orderBy('dateStr').reverse().toArray()
   );
 
+  const [preparedBackupBlob, setPreparedBackupBlob] = useState<Blob | null>(null);
+
   useEffect(() => {
     requestPersistentStorage().then(setStoragePersisted);
+    db.export()
+      .then(setPreparedBackupBlob)
+      .catch((err) => console.warn('Could not pre-generate backup blob:', err));
   }, []);
 
   const handleExport = async () => {
     try {
-      await exportDatabase();
+      await exportDatabase(preparedBackupBlob || undefined);
       toast.success(t('backupExported'));
     } catch (error) {
       console.error('Error al exportar:', error);
@@ -91,7 +96,7 @@ export default function Settings() {
 
   const handleShareBackup = async () => {
     try {
-      const res = await shareDatabaseBackup();
+      const res = await shareDatabaseBackup(preparedBackupBlob || undefined);
       toast.success(res === 'shared' ? t('backupExported') : t('shareNotSupported'));
     } catch (error: any) {
       if (error?.name !== 'AbortError') {

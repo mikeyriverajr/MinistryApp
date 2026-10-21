@@ -119,40 +119,99 @@ export async function requestPersistentStorage(): Promise<boolean> {
   return false;
 }
 
-export function getBackupFilename(): string {
-  return `morfo-backup-${new Date().toISOString().split('T')[0]}.json`;
+export function getBackupFilename(ext: 'json' | 'txt' = 'json'): string {
+  return `morfo-backup-${new Date().toISOString().split('T')[0]}.${ext}`;
 }
 
-export async function exportDatabase(): Promise<void> {
-  const blob = await db.export();
+export async function createBackupBlob(): Promise<Blob> {
+  return await db.export();
+}
+
+export function triggerBlobDownload(blob: Blob, filename = getBackupFilename('json')): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = getBackupFilename();
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
   resetPendingBackupChanges();
 }
 
-export async function shareDatabaseBackup(): Promise<'shared' | 'downloaded'> {
-  const blob = await db.export();
-  const filename = getBackupFilename();
-  const file = new File([blob], filename, { type: 'application/json' });
+export async function exportDatabase(pregeneratedBlob?: Blob): Promise<void> {
+  const blob = pregeneratedBlob || (await db.export());
+  triggerBlobDownload(blob, getBackupFilename('json'));
+}
 
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    await navigator.share({
-      title: 'Morfo Backup',
-      text: `Respaldo de Morfo (${new Date().toLocaleDateString()})`,
-      files: [file],
-    });
-    resetPendingBackupChanges();
-    return 'shared';
+export async function shareDatabaseBackup(
+  pregeneratedBlob?: Blob
+): Promise<'shared' | 'downloaded' | 'copied'> {
+  const blob = pregeneratedBlob || (await db.export());
+  const dateLabel = new Date().toLocaleDateString();
+
+  if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+    // 1. Try sharing as a .json file first
+    try {
+      const jsonFile = new File([blob], getBackupFilename('json'), {
+        type: 'application/json',
+      });
+      if (!navigator.canShare || navigator.canShare({ files: [jsonFile] })) {
+        await navigator.share({
+          title: 'Morfo Backup',
+          text: `Respaldo de Morfo (${dateLabel})`,
+          files: [jsonFile],
+        });
+        resetPendingBackupChanges();
+        return 'shared';
+      }
+    } catch (err: any) {
+      if (err?.name === 'AbortError') throw err;
+    }
+
+    // 2. Fallback: Android Chrome often blocks application/json in Web Share API but allows text/plain .txt files
+    try {
+      const txtFile = new File([blob], getBackupFilename('txt'), {
+        type: 'text/plain',
+      });
+      if (!navigator.canShare || navigator.canShare({ files: [txtFile] })) {
+        await navigator.share({
+          title: 'Morfo Backup',
+          text: `Respaldo de Morfo (${dateLabel})`,
+          files: [txtFile],
+        });
+        resetPendingBackupChanges();
+        return 'shared';
+      }
+    } catch (err: any) {
+      if (err?.name === 'AbortError') throw err;
+    }
+
+    // 3. Fallback: Share raw backup JSON text directly to WhatsApp / Notes / Email via native share sheet
+    try {
+      const rawText = await blob.text();
+      await navigator.share({
+        title: `Morfo Backup (${dateLabel})`,
+        text: rawText,
+      });
+      resetPendingBackupChanges();
+      return 'shared';
+    } catch (err: any) {
+      if (err?.name === 'AbortError') throw err;
+    }
   }
 
-  // Fallback to direct download if Web Share with files isn't supported
-  await exportDatabase();
+  // 4. Final fallback if Web Share API is unavailable or blocked (e.g. desktop / iframe): download file & copy to clipboard
+  try {
+    const rawText = await blob.text();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(rawText);
+    }
+  } catch {
+    // Ignore clipboard errors
+  }
+
+  triggerBlobDownload(blob, getBackupFilename('json'));
   return 'downloaded';
 }
 

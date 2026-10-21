@@ -131,9 +131,19 @@ export default function Dashboard() {
     return false;
   }, [backupReminder, lastBackupDate, isBackupDismissed, visits, timeEntries]);
 
+  const [preparedBackupBlob, setPreparedBackupBlob] = useState<Blob | null>(null);
+
+  useEffect(() => {
+    if (showBackupReminder || pendingChanges >= 3) {
+      db.export()
+        .then(setPreparedBackupBlob)
+        .catch((err) => console.warn('Could not pre-generate backup blob:', err));
+    }
+  }, [showBackupReminder, pendingChanges, visits, timeEntries]);
+
   const handleDownloadBackup = async () => {
     try {
-      await exportDatabase();
+      await exportDatabase(preparedBackupBlob || undefined);
       toast.success(t('backupExported'));
       setIsBackupDismissed(true);
     } catch (error) {
@@ -144,7 +154,7 @@ export default function Dashboard() {
 
   const handleShareBackup = async () => {
     try {
-      const result = await shareDatabaseBackup();
+      const result = await shareDatabaseBackup(preparedBackupBlob || undefined);
       toast.success(result === 'shared' ? t('backupExported') : t('shareNotSupported'));
       setIsBackupDismissed(true);
     } catch (error: any) {
