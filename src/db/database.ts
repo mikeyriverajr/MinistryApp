@@ -18,6 +18,7 @@ export interface TimeEntry {
   hours: number;
   isCredit?: boolean;
   creditType?: string;
+  note?: string;
 }
 
 export interface MonthlyStat {

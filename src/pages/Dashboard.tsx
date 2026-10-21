@@ -8,31 +8,43 @@ import {
   incrementPendingBackupChanges,
 } from '../db/database';
 import { Link, useNavigate } from 'react-router-dom';
-import { Clock, BookOpen, Plus, Save, X, Download, Share2, ShieldAlert } from 'lucide-react';
+import { Clock, BookOpen, Plus, Minus, Save, X, Download, Share2, ShieldAlert } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSettings } from '../contexts/SettingsContext';
-import { format, isSameDay } from 'date-fns';
-import DatePicker from 'react-datepicker';
+import { format, isSameDay, subDays } from 'date-fns';
+import { es, enUS } from 'date-fns/locale';
 import { formatTimeFromDate, formatTime } from '../utils/timeFormat';
-import "react-datepicker/dist/react-datepicker.css";
 import { toast } from 'react-hot-toast';
+
+const QUICK_HOUR_PRESETS = [0.5, 1, 1.5, 2, 3, 4];
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [showAddHoursModal, setShowAddHoursModal] = useState(false);
-  const [newEntryDate, setNewEntryDate] = useState<Date | null>(new Date());
-  const [newEntryHours, setNewEntryHours] = useState<string>('');
+  const [newEntryDate, setNewEntryDate] = useState<Date>(new Date());
+  const [newEntryHoursStr, setNewEntryHoursStr] = useState<string>('2');
   const [isCredit, setIsCredit] = useState(false);
   const [creditType, setCreditType] = useState('Betel');
   const [pendingChanges, setPendingChanges] = useState<number>(() => getPendingBackupChanges());
+
+  const parsedNewEntryHours = useMemo(() => {
+    const num = parseFloat(newEntryHoursStr);
+    return isNaN(num) || num < 0 ? 0 : num;
+  }, [newEntryHoursStr]);
+
+  const setModalHoursNumeric = (val: number) => {
+    const clean = Math.max(0.5, Number(val.toFixed(2)));
+    setNewEntryHoursStr(String(clean));
+  };
 
   const userProfile = useLiveQuery(() => db.userProfile.toArray());
   const visits = useLiveQuery(() => db.visits.toArray());
   const timeEntries = useLiveQuery(() => db.timeEntries.toArray());
   const monthlyStats = useLiveQuery(() => db.monthlyStats.toArray());
 
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { timeFormat } = useSettings();
+  const locale = language === 'es' ? es : enUS;
 
   useEffect(() => {
     const syncPending = () => setPendingChanges(getPendingBackupChanges());
@@ -40,8 +52,23 @@ export default function Dashboard() {
     return () => window.removeEventListener('morfo-backup-changes', syncPending);
   }, []);
 
+  const recentSevenDays = useMemo(() => {
+    const today = new Date();
+    return Array.from({ length: 7 }).map((_, i) => subDays(today, 6 - i));
+  }, []);
+
+  const dailyHoursMap = useMemo(() => {
+    const map = new Map<string, number>();
+    if (!timeEntries) return map;
+    timeEntries.forEach(e => {
+      const key = format(new Date(e.date), 'yyyy-MM-dd');
+      map.set(key, (map.get(key) || 0) + e.hours);
+    });
+    return map;
+  }, [timeEntries]);
+
   const handleAddHours = async () => {
-    if (!newEntryDate || !newEntryHours || isNaN(Number(newEntryHours)) || Number(newEntryHours) <= 0) {
+    if (!newEntryDate || parsedNewEntryHours <= 0) {
       toast.error(t('invalidHoursError'));
       return;
     }
@@ -49,12 +76,11 @@ export default function Dashboard() {
     try {
       await db.timeEntries.add({
         date: newEntryDate,
-        hours: Number(newEntryHours),
+        hours: parsedNewEntryHours,
         isCredit,
         creditType: isCredit ? creditType : undefined,
       });
       incrementPendingBackupChanges();
-      setNewEntryHours('');
       setIsCredit(false);
       setCreditType('Betel');
       setShowAddHoursModal(false);
@@ -93,7 +119,6 @@ export default function Dashboard() {
   const showBackupReminder = useMemo(() => {
     if (backupReminder === 'never' || isBackupDismissed) return false;
     if (!lastBackupDate) {
-      // Only show modal reminder once the user actually has records to back up
       return (visits?.length || 0) > 0 || (timeEntries?.length || 0) > 0;
     }
 
@@ -249,24 +274,28 @@ export default function Dashboard() {
         <p className="text-slate-500 dark:text-slate-400 mt-1">{t('ministrySummary')}</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4 items-stretch">
         <button
           type="button"
           onClick={() => navigate('/informe')}
-          className="bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-xs border border-slate-200/80 dark:border-slate-800 flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-colors"
+          className="bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-xs border border-slate-200/80 dark:border-slate-800 flex flex-col items-center justify-between cursor-pointer hover:border-primary transition-colors"
         >
-          <Clock className="text-blue-600 dark:text-blue-400 mb-2" size={30} />
-          <span className="text-3xl font-bold text-slate-800 dark:text-slate-100 tabular-nums">{currentMonthHours}</span>
-          <span className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{t('hours')}</span>
+          <Clock className="text-blue-600 dark:text-blue-400 mb-2" size={28} />
+          <div className="h-10 flex items-center justify-center">
+            <span className="text-3xl font-bold leading-none text-slate-800 dark:text-slate-100 tabular-nums">{currentMonthHours}</span>
+          </div>
+          <span className="text-sm text-slate-500 dark:text-slate-400 mt-2">{t('hours')}</span>
         </button>
         <button
           type="button"
           onClick={() => navigate('/personas?filter=cursos')}
-          className="bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-xs border border-slate-200/80 dark:border-slate-800 flex flex-col items-center justify-center cursor-pointer hover:border-primary transition-colors"
+          className="bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-xs border border-slate-200/80 dark:border-slate-800 flex flex-col items-center justify-between cursor-pointer hover:border-primary transition-colors"
         >
-          <BookOpen className="text-emerald-600 dark:text-emerald-400 mb-2" size={30} />
-          <span className="text-3xl font-bold text-slate-800 dark:text-slate-100 tabular-nums">{cursosBiblicos}</span>
-          <span className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{t('bibleCourses')}</span>
+          <BookOpen className="text-emerald-600 dark:text-emerald-400 mb-2" size={28} />
+          <div className="h-10 flex items-center justify-center">
+            <span className="text-3xl font-bold leading-none text-slate-800 dark:text-slate-100 tabular-nums">{cursosBiblicos}</span>
+          </div>
+          <span className="text-sm text-slate-500 dark:text-slate-400 mt-2">{t('bibleCourses')}</span>
         </button>
       </div>
 
@@ -279,7 +308,10 @@ export default function Dashboard() {
         </Link>
         <button
           type="button"
-          onClick={() => setShowAddHoursModal(true)}
+          onClick={() => {
+            setNewEntryDate(new Date());
+            setShowAddHoursModal(true);
+          }}
           className="min-h-[48px] bg-white dark:bg-slate-900 border border-primary text-primary flex justify-center items-center py-3 px-4 rounded-xl font-medium shadow-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors w-full"
         >
           <Plus size={18} className="mr-2" />
@@ -336,6 +368,7 @@ export default function Dashboard() {
         )}
       </div>
 
+      {/* Hybrid Quick Add Hours Modal */}
       {showAddHoursModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-lg w-full max-w-md flex flex-col">
@@ -351,64 +384,147 @@ export default function Dashboard() {
                 <X size={20} />
               </button>
             </div>
+
             <div className="p-5 space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{t('dateOfHours')}</label>
-                  <DatePicker
-                    selected={newEntryDate}
-                    onChange={(date: Date | null) => setNewEntryDate(date)}
-                    dateFormat="dd/MM/yyyy"
-                    className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
-                  />
+              {/* Keyboard-free 7-day selector strip showing already-logged hours */}
+              <div>
+                <div className="flex justify-between items-baseline mb-2">
+                  <label className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                    {t('dateOfHours')}
+                  </label>
+                  <span className="text-xs font-semibold text-primary capitalize">
+                    {format(newEntryDate, language === 'es' ? "EEEE d 'de' MMM" : 'EEE, MMM d', { locale })}
+                  </span>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{t('hoursAmount')}</label>
+                <div className="grid grid-cols-7 gap-1 bg-slate-50 dark:bg-slate-800/60 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700">
+                  {recentSevenDays.map(day => {
+                    const key = format(day, 'yyyy-MM-dd');
+                    const logged = dailyHoursMap.get(key) || 0;
+                    const isSelected = isSameDay(day, newEntryDate);
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setNewEntryDate(day)}
+                        className={`min-h-[52px] py-1 px-0.5 rounded-lg flex flex-col items-center justify-between transition-colors tabular-nums ${
+                          isSelected
+                            ? 'bg-primary text-white shadow-2xs'
+                            : 'text-slate-700 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
+                        }`}
+                      >
+                        <span className="text-[10px] uppercase opacity-80">
+                          {format(day, 'EEE', { locale }).substring(0, 2)}
+                        </span>
+                        <span className="text-xs font-bold">{format(day, 'd')}</span>
+                        <span
+                          className={`text-[9px] font-bold ${
+                            logged > 0
+                              ? isSelected
+                                ? 'text-white'
+                                : 'text-primary'
+                              : 'opacity-0'
+                          }`}
+                        >
+                          {logged > 0 ? `${logged}h` : '0h'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Quick-Tap Hour Presets */}
+              <div>
+                <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">
+                  {t('quickPresets')}
+                </label>
+                <div className="grid grid-cols-6 gap-1.5">
+                  {QUICK_HOUR_PRESETS.map(preset => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setModalHoursNumeric(preset)}
+                      className={`min-h-[40px] rounded-xl text-xs font-bold tabular-nums transition-all border ${
+                        parsedNewEntryHours === preset
+                          ? 'bg-primary text-white border-primary'
+                          : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-primary'
+                      }`}
+                    >
+                      {preset}h
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Hybrid Stepper + Tappable Direct Input */}
+              <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/60 p-2 rounded-2xl border border-slate-200 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setModalHoursNumeric(parsedNewEntryHours - 0.5)}
+                  className="min-h-[44px] px-3.5 rounded-xl bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-bold text-xs flex items-center gap-1 shadow-2xs border border-slate-200 dark:border-slate-700 tabular-nums shrink-0"
+                >
+                  <Minus size={16} />
+                  <span>0.5</span>
+                </button>
+
+                <div className="flex flex-col items-center justify-center flex-1 px-2">
                   <input
                     type="number"
                     step="0.5"
                     min="0"
-                    value={newEntryHours}
-                    onChange={(e) => setNewEntryHours(e.target.value)}
-                    placeholder="0.0"
-                    className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary tabular-nums"
+                    value={newEntryHoursStr}
+                    onChange={(e) => setNewEntryHoursStr(e.target.value)}
+                    aria-label={t('hoursAmount')}
+                    className="w-24 text-center text-2xl font-bold text-primary bg-transparent border-b border-dashed border-slate-300 dark:border-slate-700 focus:border-primary focus:outline-none tabular-nums py-0.5"
                   />
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                    {t('tapToTypeHours')}
+                  </span>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => setModalHoursNumeric(parsedNewEntryHours + 0.5)}
+                  className="min-h-[44px] px-3.5 rounded-xl bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 font-bold text-xs flex items-center gap-1 shadow-2xs border border-slate-200 dark:border-slate-700 tabular-nums shrink-0"
+                >
+                  <Plus size={16} />
+                  <span>0.5</span>
+                </button>
               </div>
 
-              <div className="flex items-center gap-2 mt-2">
-                <input
-                  type="checkbox"
-                  id="isCreditCheckboxDashboard"
-                  checked={isCredit}
-                  onChange={(e) => setIsCredit(e.target.checked)}
-                  className="h-4 w-4 accent-primary border-slate-300 rounded"
-                />
-                <label htmlFor="isCreditCheckboxDashboard" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  {t('creditHours')}
+              <div className="flex items-center justify-between gap-2 pt-1">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    id="isCreditCheckboxDashboard"
+                    checked={isCredit}
+                    onChange={(e) => setIsCredit(e.target.checked)}
+                    className="h-4 w-4 accent-primary border-slate-300 rounded"
+                  />
+                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    {t('creditHours')}
+                  </span>
                 </label>
-              </div>
 
-              {isCredit && (
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{t('creditType')}</label>
+                {isCredit && (
                   <select
                     value={creditType}
                     onChange={(e) => setCreditType(e.target.value)}
-                    className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="px-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
                   >
                     <option value="Betel">{t('betel')}</option>
                     <option value="LDC">{t('ldc')}</option>
                     <option value="Otro">{t('other')}</option>
                   </select>
-                </div>
-              )}
+                )}
+              </div>
+
               <button
                 onClick={handleAddHours}
-                className="w-full min-h-[44px] flex justify-center items-center py-2.5 px-4 bg-primary hover:bg-primary-dark text-white rounded-xl text-sm font-medium transition-colors"
+                className="w-full min-h-[48px] flex justify-center items-center py-2.5 px-4 bg-primary hover:bg-primary-dark text-white rounded-xl text-sm font-semibold transition-colors"
               >
-                <Save size={16} className="mr-2" />
-                {t('save')}
+                <Save size={18} className="mr-2" />
+                {t('save')} ({parsedNewEntryHours} h)
               </button>
             </div>
           </div>

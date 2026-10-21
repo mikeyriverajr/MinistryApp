@@ -1,6 +1,6 @@
 {
-  "summary":  "Updated implementation plan for Morfo adding solutions for Android grayed-out backup files (unrestricted file picker + content validation + paste/share options) and protection against browser data wipes (Persistent Storage API, Setup Wizard direct restore, smart off-device backup prompts, and 1-tap Web Share API export), alongside all previously confirmed bug fixes and UI/accessibility upgrades.",
-  "updatedAt":  "2026-10-20T15:26:52.221576686Z",
+  "summary":  "Updated implementation plan for the Informe tab: aligns the Horas and Cursos KPI numbers and icons on the exact same horizontal baseline with symmetric card heights, removes the timer (cronómetro), makes the hours readout tappable for direct keyboard input alongside quick presets and stepper buttons, and adds 100h and Custom options to the Monthly Goal selector.",
+  "updatedAt":  "2026-10-21T01:02:34.726411896Z",
   "requestFeedback":  true,
   "userFacing":  true
 }
