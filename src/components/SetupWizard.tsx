@@ -10,11 +10,12 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
   const [name, setName] = useState('');
   const [showPasteBox, setShowPasteBox] = useState(false);
   const [pastedJson, setPastedJson] = useState('');
+  const [showCloudCodeBox, setShowCloudCodeBox] = useState(false);
+  const [cloudCodeInput, setCloudCodeInput] = useState('');
   const [isRestoring, setIsRestoring] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { language, setLanguage, t } = useLanguage();
-  const { signInWithGoogle, checkHasCloudVault, restoreFromCloudVault, syncNowToCloud } =
-    useCloudSync();
+  const { activateCloudSync, restoreFromCloudByCode, syncNowToCloud } = useCloudSync();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,28 +29,36 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
   const handleCloudSignInAndRestore = async () => {
     setIsRestoring(true);
     try {
-      const signedInUser = await signInWithGoogle();
-      if (!signedInUser) {
-        setIsRestoring(false);
-        return;
-      }
-      const vaultCheck = await checkHasCloudVault(signedInUser.uid);
-      if (vaultCheck.exists) {
-        const ok = await restoreFromCloudVault();
+      const res = await activateCloudSync();
+      if (res.hasExistingVault) {
+        const ok = await restoreFromCloudByCode(res.code);
         if (ok) {
           toast.success(t('importSuccess'));
           onComplete();
           return;
         }
-      } else {
-        if (signedInUser.displayName && !name.trim()) {
-          setName(signedInUser.displayName);
-        }
-        toast.success(t('noCloudBackupFound'));
       }
+      // Show the Cloud Code input box so the user can enter their MORFO-XXXXXX code if restoring from a wiped browser or another phone
+      setShowCloudCodeBox(true);
     } catch (error) {
       console.error('Error restoring from cloud on welcome screen:', error);
-      toast.error(t('importError'));
+      setShowCloudCodeBox(true);
+    } finally {
+      setIsRestoring(false);
+    }
+  };
+
+  const handleRestoreByEnteredCode = async () => {
+    if (!cloudCodeInput.trim()) return;
+    setIsRestoring(true);
+    try {
+      const ok = await restoreFromCloudByCode(cloudCodeInput);
+      if (ok) {
+        toast.success(t('importSuccess'));
+        onComplete();
+      } else {
+        toast.error(t('partnerLinkError'));
+      }
     } finally {
       setIsRestoring(false);
     }
@@ -165,7 +174,7 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
               {t('haveBackupQuestion')}
             </p>
 
-            {/* 1-Tap Google Cloud Restore */}
+            {/* 1-Tap Google / Cloud Code Restore */}
             <button
               type="button"
               disabled={isRestoring}
@@ -175,6 +184,26 @@ export default function SetupWizard({ onComplete }: { onComplete: () => void }) 
               <Cloud size={18} />
               <span>{isRestoring ? t('importing') : t('restoreFromGoogleCloud')}</span>
             </button>
+
+            {showCloudCodeBox && (
+              <div className="flex gap-2 pt-1">
+                <input
+                  type="text"
+                  value={cloudCodeInput}
+                  onChange={(e) => setCloudCodeInput(e.target.value.toUpperCase())}
+                  placeholder={t('partnerCodePlaceholder')}
+                  className="flex-1 min-h-[42px] px-3 py-2 text-xs font-mono uppercase border border-slate-300 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <button
+                  type="button"
+                  disabled={isRestoring || !cloudCodeInput.trim()}
+                  onClick={handleRestoreByEnteredCode}
+                  className="min-h-[42px] px-4 py-2 bg-primary text-white rounded-xl text-xs font-semibold hover:bg-primary-dark disabled:opacity-50"
+                >
+                  {t('restore')}
+                </button>
+              </div>
+            )}
 
             <button
               type="button"

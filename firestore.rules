@@ -36,6 +36,7 @@ service cloud.firestore {
     function isValidUserVault(data) {
       return data.keys().hasAll([
           'ownerId',
+          'vaultCode',
           'publisherName',
           'visits',
           'timeEntries',
@@ -45,6 +46,7 @@ service cloud.firestore {
         ])
         && data.keys().hasOnly([
           'ownerId',
+          'vaultCode',
           'publisherName',
           'visits',
           'timeEntries',
@@ -56,6 +58,9 @@ service cloud.firestore {
         && data.ownerId.size() >= 1
         && data.ownerId.size() <= 128
         && data.ownerId == request.auth.uid
+        && data.vaultCode is string
+        && data.vaultCode.size() >= 6
+        && data.vaultCode.size() <= 16
         && data.publisherName is string
         && data.publisherName.size() >= 1
         && data.publisherName.size() <= 120
@@ -78,6 +83,9 @@ service cloud.firestore {
           'ownerId',
           'ownerName',
           'sharedVisits',
+          'vaultVisits',
+          'vaultTimeEntries',
+          'vaultMonthlyStats',
           'createdAt',
           'updatedAt'
         ])
@@ -86,6 +94,9 @@ service cloud.firestore {
           'ownerId',
           'ownerName',
           'sharedVisits',
+          'vaultVisits',
+          'vaultTimeEntries',
+          'vaultMonthlyStats',
           'createdAt',
           'updatedAt'
         ])
@@ -96,18 +107,27 @@ service cloud.firestore {
         && data.ownerId is string
         && data.ownerId.size() >= 1
         && data.ownerId.size() <= 128
-        && data.ownerId == request.auth.uid
+        && data.ownerId.matches('^[a-zA-Z0-9_\\-]+$')
         && data.ownerName is string
         && data.ownerName.size() >= 1
         && data.ownerName.size() <= 120
         && data.sharedVisits is list
         && data.sharedVisits.size() <= 500
         && (data.sharedVisits.size() == 0 || data.sharedVisits[0] is map)
+        && data.vaultVisits is list
+        && data.vaultVisits.size() <= 500
+        && (data.vaultVisits.size() == 0 || data.vaultVisits[0] is map)
+        && data.vaultTimeEntries is list
+        && data.vaultTimeEntries.size() <= 1000
+        && (data.vaultTimeEntries.size() == 0 || data.vaultTimeEntries[0] is map)
+        && data.vaultMonthlyStats is list
+        && data.vaultMonthlyStats.size() <= 120
+        && (data.vaultMonthlyStats.size() == 0 || data.vaultMonthlyStats[0] is map)
         && data.createdAt is timestamp
         && data.updatedAt is timestamp;
     }
 
-    // 4. Collection: /userVaults/{userId} (Strictly Private Owner Vault)
+    // 4. Collection: /userVaults/{userId} (Google Auth Owner Vault)
     match /userVaults/{userId} {
       allow get: if isVerifiedUser() && isValidId(userId) && request.auth.uid == userId;
       allow list: if false;
@@ -128,6 +148,7 @@ service cloud.firestore {
         && incoming().createdAt == existing().createdAt
         && incoming().updatedAt == request.time
         && incoming().diff(existing()).affectedKeys().hasOnly([
+          'vaultCode',
           'publisherName',
           'visits',
           'timeEntries',
@@ -141,34 +162,35 @@ service cloud.firestore {
         && existing().ownerId == request.auth.uid;
     }
 
-    // 5. Collection: /partnerShares/{shareCode} (Shared Schedule & Pins by Code)
+    // 5. Collection: /partnerShares/{shareCode} (Cloud Code Vault & Partner Schedule)
+    // Works across any domain (including GitHub Pages & Android Standalone PWAs where third-party OAuth popups are blocked).
+    // Security: `list` is strictly forbidden (`allow list: if false;`), so documents can ONLY be accessed by knowing the exact secret `shareCode`.
     match /partnerShares/{shareCode} {
-      // Authenticated verified users who know the exact shareCode can fetch it via get (list is disabled to prevent scraping)
-      allow get: if isVerifiedUser() && isValidShareCode(shareCode);
+      allow get: if isValidShareCode(shareCode);
       allow list: if false;
 
-      allow create: if isVerifiedUser()
-        && isValidShareCode(shareCode)
+      allow create: if isValidShareCode(shareCode)
         && isValidPartnerShare(incoming(), shareCode)
         && incoming().createdAt == request.time
         && incoming().updatedAt == request.time;
 
-      allow update: if isVerifiedUser()
-        && isValidShareCode(shareCode)
+      allow update: if isValidShareCode(shareCode)
         && isValidPartnerShare(incoming(), shareCode)
-        && existing().ownerId == request.auth.uid
-        && incoming().ownerId == existing().ownerId
         && incoming().shareCode == existing().shareCode
+        && incoming().ownerId == existing().ownerId
         && incoming().createdAt == existing().createdAt
         && incoming().updatedAt == request.time
         && incoming().diff(existing()).affectedKeys().hasOnly([
           'ownerName',
           'sharedVisits',
+          'vaultVisits',
+          'vaultTimeEntries',
+          'vaultMonthlyStats',
           'updatedAt'
         ]);
 
-      allow delete: if isVerifiedUser()
-        && isValidShareCode(shareCode)
+      allow delete: if isValidShareCode(shareCode)
+        && isVerifiedUser()
         && existing().ownerId == request.auth.uid;
     }
   }

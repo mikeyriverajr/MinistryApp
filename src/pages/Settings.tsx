@@ -67,6 +67,7 @@ export default function Settings() {
 
   const {
     user,
+    isCloudEnabled,
     isSyncing,
     lastCloudSyncAt,
     myShareCode,
@@ -74,16 +75,16 @@ export default function Settings() {
     partnerName,
     showPartnerData,
     setShowPartnerData,
-    signInWithGoogle,
+    activateCloudSync,
     signOutCloud,
     syncNowToCloud,
-    restoreFromCloudVault,
-    checkHasCloudVault,
+    restoreFromCloudByCode,
     linkPartnerByCode,
     unlinkPartner,
   } = useCloudSync();
 
   const [partnerCodeInput, setPartnerCodeInput] = useState('');
+  const [restoreCodeInput, setRestoreCodeInput] = useState('');
   const [isLinkingPartner, setIsLinkingPartner] = useState(false);
   const [showCloudRestoreModal, setShowCloudRestoreModal] = useState(false);
 
@@ -117,18 +118,12 @@ export default function Settings() {
   }, []);
 
   const handleConnectGoogle = async () => {
-    const signedInUser = await signInWithGoogle();
-    if (!signedInUser) return;
-
-    const vaultInfo = await checkHasCloudVault(signedInUser.uid);
+    const res = await activateCloudSync();
+    toast.success(t('cloudSyncSuccess'));
     const localVisitsCount = await db.visits.count();
-
-    // If user has a cloud backup and no local visits yet, prompt to restore; otherwise sync current data
-    if (vaultInfo.exists && localVisitsCount === 0) {
+    if (res.hasExistingVault && localVisitsCount === 0) {
+      setRestoreCodeInput(res.code);
       setShowCloudRestoreModal(true);
-    } else {
-      const ok = await syncNowToCloud();
-      if (ok) toast.success(t('cloudSyncSuccess'));
     }
   };
 
@@ -140,10 +135,12 @@ export default function Settings() {
   };
 
   const handleConfirmCloudRestore = async () => {
+    const targetCode = restoreCodeInput.trim().toUpperCase() || myShareCode;
     setShowCloudRestoreModal(false);
-    const ok = await restoreFromCloudVault();
+    const ok = await restoreFromCloudByCode(targetCode);
     if (ok) {
       toast.success(t('importSuccess'));
+      setTimeout(() => window.location.reload(), 900);
     } else {
       toast.error(t('noCloudBackupFound'));
     }
@@ -343,7 +340,7 @@ export default function Settings() {
             <Cloud className="mr-2 text-primary" size={20} />
             {t('cloudSyncTitle')}
           </h3>
-          {user && (
+          {isCloudEnabled && (
             <span className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
               <CheckCircle2 size={15} />
               <span>{t('cloudAutoSyncActive')}</span>
@@ -355,21 +352,36 @@ export default function Settings() {
           {t('cloudSyncDesc')}
         </p>
 
-        {!user ? (
-          <button
-            type="button"
-            onClick={handleConnectGoogle}
-            className="w-full min-h-[48px] flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl text-sm font-semibold text-white bg-primary hover:bg-primary-dark transition-colors shadow-2xs"
-          >
-            <Cloud size={18} />
-            <span>{t('connectGoogleCloud')}</span>
-          </button>
+        {!isCloudEnabled ? (
+          <div className="space-y-2.5">
+            <button
+              type="button"
+              onClick={handleConnectGoogle}
+              className="w-full min-h-[48px] flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl text-sm font-semibold text-white bg-primary hover:bg-primary-dark transition-colors shadow-2xs"
+            >
+              <Cloud size={18} />
+              <span>{t('connectGoogleCloud')}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setRestoreCodeInput('');
+                setShowCloudRestoreModal(true);
+              }}
+              className="w-full min-h-[42px] flex items-center justify-center gap-2 py-2 px-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-medium hover:bg-slate-200 transition-colors"
+            >
+              <RotateCcw size={15} />
+              <span>{t('restoreFromCloudBtn')}</span>
+            </button>
+          </div>
         ) : (
           <div className="space-y-3 bg-slate-50 dark:bg-slate-800/60 p-4 rounded-xl border border-slate-200/80 dark:border-slate-700">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="min-w-0">
                 <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate">
-                  {t('cloudConnectedAs', { email: user.email || user.displayName || 'Google' })}
+                  {t('cloudConnectedAs', {
+                    email: user?.email || user?.displayName || myShareCode,
+                  })}
                 </p>
                 {lastCloudSyncAt && (
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 tabular-nums">
@@ -401,7 +413,10 @@ export default function Settings() {
               <button
                 type="button"
                 disabled={isSyncing}
-                onClick={() => setShowCloudRestoreModal(true)}
+                onClick={() => {
+                  setRestoreCodeInput(myShareCode);
+                  setShowCloudRestoreModal(true);
+                }}
                 className="min-h-[42px] flex items-center justify-center gap-2 py-2 px-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-medium hover:border-primary transition-colors"
               >
                 <RotateCcw size={15} />
@@ -423,7 +438,7 @@ export default function Settings() {
           {t('partnerSectionDesc')}
         </p>
 
-        {!user ? (
+        {!isCloudEnabled ? (
           <div className="p-3.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 text-xs text-amber-900 dark:text-amber-200">
             {t('partnerRequiresCloud')}
           </div>
@@ -797,10 +812,17 @@ export default function Settings() {
                 <X size={20} />
               </button>
             </div>
-            <div className="p-4">
+            <div className="p-4 space-y-3">
               <p className="text-sm text-slate-700 dark:text-slate-200 font-medium">
                 {t('cloudRestoreConfirm')}
               </p>
+              <input
+                type="text"
+                value={restoreCodeInput}
+                onChange={(e) => setRestoreCodeInput(e.target.value.toUpperCase())}
+                placeholder={t('partnerCodePlaceholder')}
+                className="w-full min-h-[42px] px-3.5 py-2 text-sm font-mono uppercase bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary"
+              />
             </div>
             <div className="flex border-t border-slate-100 dark:border-slate-800">
               <button

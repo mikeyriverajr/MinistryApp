@@ -12,6 +12,13 @@
           "maxLength": 128,
           "pattern": "^[a-zA-Z0-9_\\-]+$"
         },
+        "vaultCode": {
+          "type": "string",
+          "description": "Publisher's 6-16 character Cloud Sync & Partner Code.",
+          "minLength": 6,
+          "maxLength": 16,
+          "pattern": "^[A-Z0-9\\-]+$"
+        },
         "publisherName": {
           "type": "string",
           "description": "Display name of the publisher.",
@@ -43,6 +50,7 @@
       },
       "required": [
         "ownerId",
+        "vaultCode",
         "publisherName",
         "visits",
         "timeEntries",
@@ -53,42 +61,54 @@
     },
     "PartnerShare": {
       "title": "PartnerShare",
-      "description": "Shared schedule and GPS pin document for a publisher's pioneer partner or spouse.",
+      "description": "Cloud Vault & Partner Share document keyed by the publisher's Cloud Code.",
       "type": "object",
       "properties": {
         "shareCode": {
           "type": "string",
-          "description": "Unique 6-12 character uppercase alphanumeric share code.",
+          "description": "Unique 6-16 character uppercase alphanumeric code.",
           "minLength": 6,
           "maxLength": 16,
           "pattern": "^[A-Z0-9\\-]+$"
         },
         "ownerId": {
           "type": "string",
-          "description": "Firebase Auth UID of the publisher sharing their schedule.",
+          "description": "Device or Auth UID of the publisher.",
           "minLength": 1,
           "maxLength": 128,
           "pattern": "^[a-zA-Z0-9_\\-]+$"
         },
         "ownerName": {
           "type": "string",
-          "description": "Display name of the publisher sharing their schedule.",
+          "description": "Display name of the publisher.",
           "minLength": 1,
           "maxLength": 120
         },
         "sharedVisits": {
           "type": "array",
-          "description": "Bounded array of sanitized schedule & GPS items (max 500)."
+          "description": "Bounded array of schedule & GPS items (max 500)."
+        },
+        "vaultVisits": {
+          "type": "array",
+          "description": "Bounded array of full visit records for cloud backup (max 500)."
+        },
+        "vaultTimeEntries": {
+          "type": "array",
+          "description": "Bounded array of time entries for cloud backup (max 1000)."
+        },
+        "vaultMonthlyStats": {
+          "type": "array",
+          "description": "Bounded array of monthly stats for cloud backup (max 120)."
         },
         "createdAt": {
           "type": "string",
           "format": "date-time",
-          "description": "Server timestamp when share document was created."
+          "description": "Server timestamp when document was created."
         },
         "updatedAt": {
           "type": "string",
           "format": "date-time",
-          "description": "Server timestamp of latest schedule update."
+          "description": "Server timestamp of latest update."
         }
       },
       "required": [
@@ -96,6 +116,9 @@
         "ownerId",
         "ownerName",
         "sharedVisits",
+        "vaultVisits",
+        "vaultTimeEntries",
+        "vaultMonthlyStats",
         "createdAt",
         "updatedAt"
       ]
@@ -104,11 +127,11 @@
   "firestore": {
     "/userVaults/{userId}": {
       "schema": "UserVault",
-      "description": "Strictly private cloud backup vault per publisher UID."
+      "description": "Private cloud backup vault per Google Auth UID."
     },
     "/partnerShares/{shareCode}": {
       "schema": "PartnerShare",
-      "description": "Shared schedule and map pins keyed by partner share code."
+      "description": "Cloud sync & partner schedule document keyed by shareCode (works on any domain including GitHub Pages and Android PWAs)."
     }
   }
 }
