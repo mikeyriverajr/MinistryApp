@@ -1,6 +1,6 @@
 {
-  "summary":  "Implementation plan for Morfo adding (1) Automatic Firebase Cloud Backup & 1-Tap Restore while keeping offline-first IndexedDB, (2) Optional Pioneer Partner / Spouse Linking in Ajustes (Settings) with independent per-partner visibility toggles, live schedule conflict alerts when scheduling visits, and partner pins on the Territory Map, and (3) a 3D Animated Flapping Morpho Butterfly Splash Screen.",
-  "updatedAt":  "2026-10-23T13:00:11.026832167Z",
+  "summary":  "Implementation plan for explaining the Morfo Cloud Code (MORFO-XXXXXX) and adding a one-tap WhatsApp save/share action both in an immediate activation modal and permanently inside Ajustes.",
+  "updatedAt":  "2026-10-23T14:23:55.801092791Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

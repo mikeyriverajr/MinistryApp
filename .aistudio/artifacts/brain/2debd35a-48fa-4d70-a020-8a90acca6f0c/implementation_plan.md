@@ -1,86 +1,74 @@
-# Morfo — Automatic Cloud Backup, Optional Partner Sync & Flapping Butterfly Splash
+# Morfo Cloud Code Explanation & WhatsApp Self-Messaging
 
-This plan upgrades **Morfo** with **Automatic Firebase Cloud Backup**, **Optional Pioneer Partner / Spouse Sharing** (configured in **Ajustes**, with independent toggles for each partner to show or hide the other person's schedule and map pins), and a **3D Animated Flapping Morpho Butterfly Splash Screen**.
+Make the publisher's unique **Morfo Cloud Code (`MORFO-XXXXXX`)** unmistakably clear and safe to keep by explaining its dual role (automatic cloud backup key + partner schedule link) and providing a one-tap **Enviar por WhatsApp** action both when Cloud Sync is activated and permanently inside **Ajustes**.
 
 ## User Review & Critical Decisions
 
 > [!IMPORTANT]
-> Firebase has been provisioned (`gen-lang-client-0766777124`), and all of your requirements—including making Partner Sharing 100% optional in **Ajustes** and allowing each partner to independently toggle whether they see the other person's data—are built into the architecture below.
+> Both design preferences have been confirmed and incorporated into this plan:
 
-- **Decision 1 (Automatic Cloud Backup + Offline-First Local DB)**:
-  - **How it works**: Local `IndexedDB` (`Dexie`) remains the primary engine so the app opens instantly even with zero cell signal in rural territories.
-  - When a user signs in with their Google account (either on the **Welcome / Setup screen** or in **Ajustes**), **Morfo** automatically backs up their entire database (visits, Bible courses, follow-ups, and hours) to their private Firebase Cloud Vault whenever a change is made, and restores it automatically if browser data is ever wiped or on a new phone.
-  - **Ultra-Low Quota Design**: We store each publisher's personal backup in a single compact document (`userVaults/{uid}`) and their shared schedule/pins in a single partner document (`partnerShares/{shareCode}`). This uses only **1–2 reads on startup** and **1 write per change**, keeping usage under **0.05%** of Firebase's 50,000 free daily reads.
-- **Decision 2 (Optional Partner Sharing in Ajustes + Independent Visibility Toggles)**:
-  - Partner sharing is **completely optional** and lives in a dedicated **"Compañero / Cónyuge de Predicación" (*Pioneer Partner*)** section inside **Ajustes (`Settings`)**.
-  - **Linking**: Partner A taps **"Generate Partner Code"** (e.g., `MORFO-842`) and shares it with Partner B, who enters the code in their **Ajustes**. Either partner can unlink at any time.
-  - **Independent Visibility Toggle**: Each partner has their own **"Ver datos de mi compañero" (*Show partner's data*)** master switch in **Ajustes** (plus quick filter pills in **Agenda** and **Mapa**). If a husband turns the toggle ON while driving to his wife's studies, he sees her map pins and schedule; if he turns it OFF during his own personal study or ministry, her pins and agenda items are completely hidden on his phone without affecting her phone.
-- **Decision 3 (Live Schedule Conflict Alert & Partner Map Navigation)**:
-  - When **"Show partner's data"** is enabled:
-    - **At the Door (`VisitForm` & `PersonRecord`)**: Selecting a Next Visit date/time or recurring Bible Course day/time automatically checks your partner's schedule and displays a non-blocking **Schedule Conflict Banner** if your partner already has a study or visit within 60 minutes of that time.
-    - **Agenda (`CalendarView`)**: Displays your partner's scheduled visits/courses with a distinct badge (`Compañero: [Nombre]`) in read-only mode so you never accidentally overwrite their notes.
-    - **Territory Map (`MapView`)**: Displays your partner's pins with a distinct marker style and a **"Navigate"** button so you can drive directly to their Bible course or return visit from your phone.
-- **Decision 4 (3D Animated Flapping Morpho Butterfly Splash Screen)**:
-  - Creates a multi-part vector **Morpho Butterfly Component** with hinged left and right wings that flap smoothly in 3D perspective (`rotateY` + gentle vertical float).
-  - Shows a graceful `1.4s` animated splash overlay when the app launches, and also features the live flapping butterfly on the **Setup / Welcome screen** and header logo.
+- **Confirmed Placement**: Display a celebratory **Código Morfo** modal immediately when Cloud Sync is activated, **and** keep the explanation + WhatsApp button permanently accessible inside **Ajustes** (`Respaldo Automático en la Nube` and `Sincronización con Compañero`).
+- **Confirmed WhatsApp Behavior**: Tapping **Guardar / Enviar por WhatsApp** opens WhatsApp directly (`https://api.whatsapp.com/send?text=...`) with a pre-filled message containing their `MORFO-XXXXXX` code and brief instructions so the pioneer can tap their own **"Tú (You)"** chat to save it or forward it directly to their spouse/partner.
 
 ---
 
 ## 1. Overview & Core Concept
 
 - **What It Does**:
-  1. Eliminates data loss when clearing browser data by automatically syncing to Firebase Cloud when signed in, while keeping manual file export/restore as an offline fallback.
-  2. Lets married couples or pioneering partners optionally link their apps in **Ajustes**, detect scheduling conflicts at the door, and navigate to each other's Bible studies on the map—with an independent toggle to show or hide partner data anytime.
-  3. Brings the **Morfo** brand to life with a 3D flapping butterfly splash animation.
+  1. Clearly explains in plain Spanish and English *why* the `MORFO-XXXXXX` code is important: it serves as the publisher's **personal cloud recovery key** (to restore all visits, Bible studies, and hours on a new phone) and as their **partner sharing code** (so their spouse or pioneering partner can view their schedule and study locations).
+  2. Pops up a dedicated **"¡Guarda tu Código Morfo!"** modal the moment the user activates Cloud Sync for the first time, encouraging them to send it to their own WhatsApp chat right away.
+  3. Displays a prominent **Código Morfo** badge inside the Cloud Backup card in **Ajustes** with quick actions to **Copiar código** and **Enviar a mi WhatsApp**.
+- **Target Audience / Persona**: Pioneers and publishers using Morfo on Android PWAs and mobile browsers who want zero-friction cloud backups without risking losing their recovery code if they switch or reset phones.
+- **Key Value**: Eliminates the single biggest risk of passwordless Cloud Code sync—forgetting the `MORFO-XXXXXX` code—by storing it safely in the user's own WhatsApp chat history in two taps.
 
 ---
 
 ## 2. User Experience & Visual Design
 
-### Key User Flows
-
-1. **Animated Flapping Butterfly Launch**:
-   - Upon opening **Morfo**, a smooth splash screen displays the orange Morpho butterfly flapping its wings in 3D space above the **Morfo** wordmark, then softly fades into the Dashboard.
-2. **1-Tap Google Sign-In for Automatic Cloud Backup (`SetupWizard` & `Settings`)**:
-   - On the **Welcome Screen** (if browser data was wiped) or in **Ajustes**, tapping **"Conectar con Google (Respaldo Automático en la Nube)"** signs the user in.
-   - If a cloud backup already exists for their Google account, Morfo immediately offers to restore all their records in one tap.
-   - Once connected, a green **"Respaldo en la nube activo (Sincronizado)"** badge appears in **Ajustes**, and the "Unsaved Changes" warning banner is automatically satisfied whenever cloud sync completes.
-3. **Optional Partner Setup & Visibility Toggle (`Settings` -> `CalendarView` / `MapView` / `VisitForm`)**:
-   - In **Ajustes**, under **"Compañero de Predicación (Opcional)"**:
-     - You can copy/share your **6-character Partner Code** or enter your partner's code to link.
-     - Once linked, you see **"Conectado con [Nombre]"** and a prominent switch: **"Mostrar agenda y mapa de [Nombre] en mi app"** (`ON` / `OFF`).
-   - When switched **ON**:
-     - **Mapa** and **Agenda** include a quick filter bar: **`Todos` | `Solo míos` | `De [Compañero]`**.
-     - **Nuevo/Editar Registro (`VisitForm`)** warns you immediately if a chosen day & time overlaps with your partner's schedule.
+- **Key User Flows**:
+  1. **First-Time Activation Modal**:
+     - User taps **Activar Nube y Sincronización** in **Ajustes**.
+     - Once connected, a clean modal appears displaying their `MORFO-XXXXXX` code in large monospace type, a clear 2-bullet explanation of what the code does (Cloud Backup Recovery + Partner Sync), and a primary green **Guardar en mi WhatsApp** button alongside a **Copiar código** button.
+  2. **Permanent Access in Ajustes**:
+     - Inside the **Respaldo Automático en la Nube** section of **Ajustes**, the user's `MORFO-XXXXXX` code is prominently displayed with a short reminder (*"Tu llave personal de respaldo y código de compañero. Guárdalo en un lugar seguro."*) and one-tap **WhatsApp** and **Copiar** buttons.
+  3. **WhatsApp Pre-Filled Message**:
+     - Tapping the WhatsApp button opens WhatsApp with a clear, well-formatted message:
+       > 🦋 *Mi Código Morfo de Respaldo y Sincronización:*
+       > *MORFO-XXXXXX*
+       > 
+       > Guarda este mensaje en tu chat personal ("Tú"). Te servirá para restaurar todas tus revisitas, cursos bíblicos y horas en cualquier teléfono nuevo, o para vincular tu horario con tu compañero(a) de predicación.
+- **Visual Identity & Theme**:
+  - Follows Mobile & Touch-First ergonomics ($\ge 44\text{px}$ touch targets, `rounded-2xl` surface cards, crisp tabular/monospace typography for the code, and official WhatsApp emerald accent `#25D366` / `bg-emerald-600` for the WhatsApp action button).
 
 ---
 
-## 3. Technical Architecture & Data Strategy
+## 3. Key Product Decisions & Trade-Offs
+
+- **Decision 1: Universal WhatsApp Deep Link (`https://api.whatsapp.com/send?text=...`)**
+  - *Chosen Approach*: Trigger WhatsApp's universal share URL using an anchor link (`target="_blank" rel="noopener noreferrer"`) so it works reliably inside Android installed PWAs as well as mobile browsers without being blocked by iframe/popup restrictions.
+  - *Why*: `window.open` can be blocked by Android standalone WebAPK containers, whereas an explicit user tap on an external deep-link or top-level navigation reliably launches the native WhatsApp app on Android and iOS.
+
+---
+
+## 4. Technical Architecture & Data Strategy *(Technical Reference)*
 
 ```
-┌────────────────────────────────────────────────────────────────────────────┐
-│                   Local IndexedDB (Dexie — Offline First)                  │
-│   • userProfile, visits, timeEntries, monthlyStats                         │
-└──────────────┬──────────────────────────────────────────────┬──────────────┘
-               │ Automatic Background Sync                    │ Partner Sync
-               ▼ (1 Doc per User)                             ▼ (1 Doc per Code)
-┌─────────────────────────────────────────┐  ┌───────────────────────────────┐
-│   Firestore: /userVaults/{userId}       │  │ Firestore: /partnerShares/{id}│
-│   • Strictly private (isOwner only)     │  │ • Sanitized schedule & GPS    │
-│   • Full automatic backup of visits,    │  │   pins (NO personal hours)    │
-│     studies, follow-ups & hours         │  │ • Accessible by owner or      │
-│   • Auto-restores if browser is wiped   │  │   linked partner UID          │
-└─────────────────────────────────────────┘  └───────────────┬───────────────┘
-                                                             │
-                                                             ▼
-┌────────────────────────────────────────────────────────────────────────────┐
-│                 Partner Visibility & Conflict Engine (React)               │
-│   • Settings Toggle: showPartnerData (ON / OFF per device)                 │
-│   • VisitForm & PersonRecord: Real-time 60-min overlap conflict detector   │
-│   • MapView & CalendarView: Read-only partner pins + Google Maps navigation│
-└────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│                        Ajustes (Settings.tsx)                        │
+├──────────────────────────────────────────────────────────────────────┤
+│  1. Respaldo Automático en la Nube                                   │
+│     ├─ Prominent Código Morfo Card (MORFO-XXXXXX)                    │
+│     ├─ Explanation of Dual Purpose (Cloud Vault + Partner Schedule)  │
+│     └─ Actions: [Guardar en WhatsApp]  [Copiar Código]               │
+│                                                                      │
+│  2. Modal: ¡Guarda tu Código Morfo! (Shown on Cloud Activation)      │
+│     ├─ Explains why saving the code matters                          │
+│     ├─ Highlights MORFO-XXXXXX                                       │
+│     └─ Primary CTA: [Enviar a mi WhatsApp] / Secondary: [Ya lo guardé]│
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
-### Security & Privacy (`firestore.rules` & `firebase-blueprint.json`)
-- **`/userVaults/{userId}`**: Strictly locked to `request.auth.uid == userId` with verified email and strict schema/size validation. Nobody else—not even a linked partner—can read your private vault or your monthly hours report.
-- **`/partnerShares/{shareCode}`**: Contains only the publisher's display name and their sanitized list of visits/studies (schedule times, GPS coordinates, house description, and study status) so the partner's phone can check schedule conflicts and navigate on the map.
+- **Interactive Component & State Mapping**:
+  - `showMorfoCodeModal` state in `Settings.tsx`: Opens automatically when `handleConnectGoogle` completes (unless an existing cloud vault restore modal takes precedence, in which case the user can also view it right after).
+  - `buildWhatsAppCodeUrl(code, language)` helper: Generates the URL-encoded WhatsApp deep link in Spanish or English matching the active app language.
+  - Bilingual translations (`es` and `en`) added to `i18n.ts` for the explanation copy, modal titles, WhatsApp button labels, and pre-filled WhatsApp message text.

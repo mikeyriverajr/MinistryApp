@@ -39,6 +39,9 @@ import {
   Eye,
   EyeOff,
   CheckCircle2,
+  MessageCircle,
+  KeyRound,
+  Info,
 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import {
@@ -66,7 +69,6 @@ export default function Settings() {
   } = useSettings();
 
   const {
-    user,
     isCloudEnabled,
     isSyncing,
     lastCloudSyncAt,
@@ -87,6 +89,13 @@ export default function Settings() {
   const [restoreCodeInput, setRestoreCodeInput] = useState('');
   const [isLinkingPartner, setIsLinkingPartner] = useState(false);
   const [showCloudRestoreModal, setShowCloudRestoreModal] = useState(false);
+  const [showMorfoCodeModal, setShowMorfoCodeModal] = useState(false);
+
+  const whatsAppCodeUrl = myShareCode
+    ? `https://api.whatsapp.com/send?text=${encodeURIComponent(
+        t('whatsAppCodeMessage', { code: myShareCode })
+      )}`
+    : '#';
 
   const [backupReminder, setBackupReminder] = useState<string>(
     () => localStorage.getItem('backupReminder') || 'monthly'
@@ -124,6 +133,8 @@ export default function Settings() {
     if (res.hasExistingVault && localVisitsCount === 0) {
       setRestoreCodeInput(res.code);
       setShowCloudRestoreModal(true);
+    } else {
+      setShowMorfoCodeModal(true);
     }
   };
 
@@ -375,53 +386,96 @@ export default function Settings() {
             </button>
           </div>
         ) : (
-          <div className="space-y-3 bg-slate-50 dark:bg-slate-800/60 p-4 rounded-xl border border-slate-200/80 dark:border-slate-700">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate">
-                  {t('cloudConnectedAs', {
-                    email: user?.email || user?.displayName || myShareCode,
-                  })}
-                </p>
-                {lastCloudSyncAt && (
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 tabular-nums">
-                    {t('lastSyncedAt', {
-                      time: new Date(lastCloudSyncAt).toLocaleString(),
-                    })}
-                  </p>
-                )}
+          <div className="space-y-4">
+            {/* Prominent Morfo Code Card with Explanation & WhatsApp Self-Message */}
+            <div className="bg-slate-50 dark:bg-slate-800/70 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                    <KeyRound size={15} className="text-primary shrink-0" />
+                    <span>{t('morfoCodeCardTitle')}</span>
+                  </span>
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <span className="text-xl font-mono font-bold text-primary tracking-wider select-all">
+                      {myShareCode}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowMorfoCodeModal(true)}
+                      className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-primary transition-colors"
+                    >
+                      <Info size={14} />
+                      <span className="underline">{t('howDoesMorfoCodeWork')}</span>
+                    </button>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={signOutCloud}
+                  className="text-xs font-medium text-red-600 dark:text-red-400 hover:underline shrink-0"
+                >
+                  {t('disconnectCloud')}
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={signOutCloud}
-                className="text-xs font-medium text-red-600 dark:text-red-400 hover:underline"
-              >
-                {t('disconnectCloud')}
-              </button>
+
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                {t('morfoCodeExplanation')}
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                <a
+                  href={whatsAppCodeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="min-h-[44px] flex items-center justify-center gap-2 py-2.5 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold transition-colors shadow-2xs"
+                >
+                  <MessageCircle size={16} className="shrink-0" />
+                  <span>{t('saveCodeToWhatsApp')}</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={handleCopyPartnerCode}
+                  className="min-h-[44px] flex items-center justify-center gap-2 py-2.5 px-3.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold hover:border-primary transition-colors"
+                >
+                  <Copy size={15} className="shrink-0" />
+                  <span>{t('copyPartnerCode')}</span>
+                </button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-              <button
-                type="button"
-                disabled={isSyncing}
-                onClick={handleSyncNow}
-                className="min-h-[42px] flex items-center justify-center gap-2 py-2 px-3 bg-primary text-white rounded-xl text-xs font-semibold hover:bg-primary-dark disabled:opacity-50 transition-colors"
-              >
-                <RefreshCw size={15} className={isSyncing ? 'animate-spin' : ''} />
-                <span>{t('syncNow')}</span>
-              </button>
-              <button
-                type="button"
-                disabled={isSyncing}
-                onClick={() => {
-                  setRestoreCodeInput(myShareCode);
-                  setShowCloudRestoreModal(true);
-                }}
-                className="min-h-[42px] flex items-center justify-center gap-2 py-2 px-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-medium hover:border-primary transition-colors"
-              >
-                <RotateCcw size={15} />
-                <span>{t('restoreFromCloudBtn')}</span>
-              </button>
+            {/* Cloud Sync Status & Manual Sync / Restore Actions */}
+            <div className="space-y-3 bg-slate-50/70 dark:bg-slate-800/40 p-3.5 rounded-xl border border-slate-200/70 dark:border-slate-700/70">
+              {lastCloudSyncAt && (
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
+                  {t('lastSyncedAt', {
+                    time: new Date(lastCloudSyncAt).toLocaleString(),
+                  })}
+                </p>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  disabled={isSyncing}
+                  onClick={handleSyncNow}
+                  className="min-h-[42px] flex items-center justify-center gap-2 py-2 px-3 bg-primary text-white rounded-xl text-xs font-semibold hover:bg-primary-dark disabled:opacity-50 transition-colors"
+                >
+                  <RefreshCw size={15} className={isSyncing ? 'animate-spin' : ''} />
+                  <span>{t('syncNow')}</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={isSyncing}
+                  onClick={() => {
+                    setRestoreCodeInput(myShareCode);
+                    setShowCloudRestoreModal(true);
+                  }}
+                  className="min-h-[42px] flex items-center justify-center gap-2 py-2 px-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-medium hover:border-primary transition-colors"
+                >
+                  <RotateCcw size={15} />
+                  <span>{t('restoreFromCloudBtn')}</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -445,23 +499,34 @@ export default function Settings() {
         ) : (
           <div className="space-y-4">
             {/* Publisher's Own Share Code */}
-            <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3">
+            <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <span className="block text-xs text-slate-500 dark:text-slate-400">
                   {t('yourPartnerCodeLabel')}
                 </span>
-                <span className="text-base font-mono font-bold text-primary tracking-wider">
+                <span className="text-base font-mono font-bold text-primary tracking-wider select-all">
                   {myShareCode}
                 </span>
               </div>
-              <button
-                type="button"
-                onClick={handleCopyPartnerCode}
-                className="min-h-[38px] px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-200 hover:border-primary flex items-center gap-1.5 transition-colors"
-              >
-                <Copy size={14} />
-                <span>{t('copyPartnerCode')}</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <a
+                  href={whatsAppCodeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="min-h-[38px] px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors"
+                >
+                  <MessageCircle size={14} />
+                  <span>{t('shareCodeViaWhatsApp')}</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={handleCopyPartnerCode}
+                  className="min-h-[38px] px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-200 hover:border-primary flex items-center gap-1.5 transition-colors"
+                >
+                  <Copy size={14} />
+                  <span>{t('copyPartnerCode')}</span>
+                </button>
+              </div>
             </div>
 
             {/* Linked Partner Status OR Code Input */}
@@ -795,6 +860,79 @@ export default function Settings() {
           </button>
         </div>
       </div>
+
+      {/* Save Your Morfo Code Popup Modal (Shown on Cloud Activation & On-Demand) */}
+      {showMorfoCodeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-lg max-w-md w-full overflow-hidden">
+            <div className="flex justify-between items-center p-4 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center text-primary">
+                <KeyRound size={20} className="mr-2 shrink-0" />
+                <h3 className="font-bold text-base">{t('morfoCodeModalTitle')}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowMorfoCodeModal(false)}
+                className="min-h-[40px] min-w-[40px] flex items-center justify-center text-slate-400 hover:text-slate-600"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {/* Highlighted Morfo Code Box */}
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3">
+                <div>
+                  <span className="block text-[11px] text-slate-500 dark:text-slate-400">
+                    {t('morfoCodeCardTitle')}
+                  </span>
+                  <span className="text-2xl font-mono font-bold text-primary tracking-wider select-all">
+                    {myShareCode}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCopyPartnerCode}
+                  className="min-h-[40px] px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:border-primary flex items-center gap-1.5 transition-colors shrink-0"
+                >
+                  <Copy size={14} />
+                  <span>{t('copyPartnerCode')}</span>
+                </button>
+              </div>
+
+              {/* 2-Point Plain Explanation */}
+              <div className="space-y-2.5 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                <div className="p-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/70">
+                  {t('morfoCodeModalPoint1')}
+                </div>
+                <div className="p-3 rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/70">
+                  {t('morfoCodeModalPoint2')}
+                </div>
+              </div>
+
+              {/* Primary WhatsApp Self-Message Action + Dismiss */}
+              <div className="space-y-2 pt-1">
+                <a
+                  href={whatsAppCodeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full min-h-[48px] flex items-center justify-center gap-2.5 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-2xs"
+                >
+                  <MessageCircle size={18} className="shrink-0" />
+                  <span>{t('saveCodeToWhatsApp')}</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setShowMorfoCodeModal(false)}
+                  className="w-full min-h-[44px] py-2.5 px-4 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                >
+                  {t('iSavedMyCodeBtn')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Cloud Restore Confirmation Modal */}
       {showCloudRestoreModal && (
