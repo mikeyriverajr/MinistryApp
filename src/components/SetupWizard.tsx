@@ -1,31 +1,61 @@
 import React, { useState, useRef } from 'react';
 import { db, validateAndImportDatabase } from '../db/database';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useCloudSync } from '../contexts/CloudSyncContext';
 import { Language } from '../i18n';
-import { Upload, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+import { Upload, FileText, ChevronDown, ChevronUp, Cloud } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-interface SetupWizardProps {
-  onComplete: () => void;
-}
-
-export default function SetupWizard({ onComplete }: SetupWizardProps) {
+export default function SetupWizard({ onComplete }: { onComplete: () => void }) {
   const [name, setName] = useState('');
   const [showPasteBox, setShowPasteBox] = useState(false);
-  const [pastedText, setPastedText] = useState('');
+  const [pastedJson, setPastedJson] = useState('');
   const [isRestoring, setIsRestoring] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { language, setLanguage, t } = useLanguage();
+  const { signInWithGoogle, checkHasCloudVault, restoreFromCloudVault, syncNowToCloud } =
+    useCloudSync();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (name.trim()) {
-      await db.userProfile.add({ name: name.trim() });
-      onComplete();
+    if (!name.trim()) return;
+
+    await db.userProfile.add({ name: name.trim() });
+    await syncNowToCloud();
+    onComplete();
+  };
+
+  const handleCloudSignInAndRestore = async () => {
+    setIsRestoring(true);
+    try {
+      const signedInUser = await signInWithGoogle();
+      if (!signedInUser) {
+        setIsRestoring(false);
+        return;
+      }
+      const vaultCheck = await checkHasCloudVault(signedInUser.uid);
+      if (vaultCheck.exists) {
+        const ok = await restoreFromCloudVault();
+        if (ok) {
+          toast.success(t('importSuccess'));
+          onComplete();
+          return;
+        }
+      } else {
+        if (signedInUser.displayName && !name.trim()) {
+          setName(signedInUser.displayName);
+        }
+        toast.success(t('noCloudBackupFound'));
+      }
+    } catch (error) {
+      console.error('Error restoring from cloud on welcome screen:', error);
+      toast.error(t('importError'));
+    } finally {
+      setIsRestoring(false);
     }
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -33,7 +63,9 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
     try {
       await validateAndImportDatabase(file);
       toast.success(t('importSuccess'));
-      setTimeout(() => window.location.reload(), 800);
+      setTimeout(() => {
+        window.location.reload();
+      }, 900);
     } catch (error) {
       console.error('Error restoring backup from SetupWizard:', error);
       toast.error(t('invalidBackupFile'));
@@ -44,12 +76,14 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
   };
 
   const handlePasteRestore = async () => {
-    if (!pastedText.trim()) return;
+    if (!pastedJson.trim()) return;
     setIsRestoring(true);
     try {
-      await validateAndImportDatabase(pastedText);
+      await validateAndImportDatabase(pastedJson);
       toast.success(t('importSuccess'));
-      setTimeout(() => window.location.reload(), 800);
+      setTimeout(() => {
+        window.location.reload();
+      }, 900);
     } catch (error) {
       console.error('Error restoring pasted backup:', error);
       toast.error(t('invalidBackupFile'));
@@ -59,102 +93,140 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[80vh] py-6">
-      <div className="bg-white dark:bg-slate-900 p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 w-full max-w-md space-y-6">
-        <div className="flex justify-end">
-          <select
-            value={language}
-            onChange={(e) => setLanguage(e.target.value as Language)}
-            className="text-sm border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            <option value="es">Español</option>
-            <option value="en">English</option>
-          </select>
-        </div>
-
-        <div>
-          <h2 className="text-2xl font-bold text-center text-primary">{t('welcome')}</h2>
-          <p className="text-slate-600 dark:text-slate-400 mt-2 text-center text-sm">{t('whatsYourName')}</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-              {t('yourName')}
-            </label>
-            <input
-              type="text"
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="mt-1 block w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-              placeholder={t('namePlaceholder')}
-              required
-            />
-          </div>
-          <button
-            type="submit"
-            className="w-full min-h-[44px] flex items-center justify-center py-2.5 px-4 rounded-lg shadow-sm text-sm font-semibold text-white bg-primary hover:bg-primary-dark transition-colors"
-          >
-            {t('start')}
-          </button>
-        </form>
-
-        {/* Direct Restore Section for users recovering from cleared browser data */}
-        <div className="pt-5 border-t border-slate-200 dark:border-slate-800 space-y-3">
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 text-center">
-            {t('haveBackupQuestion')}
-          </p>
-
-          <button
-            type="button"
-            disabled={isRestoring}
-            onClick={() => fileInputRef.current?.click()}
-            className="w-full min-h-[44px] flex items-center justify-center gap-2 py-2.5 px-4 border border-primary text-primary rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-          >
-            <Upload size={18} />
-            <span>{isRestoring ? t('importing') : t('restoreFromBackup')}</span>
-          </button>
-          {/* No restrictive accept attribute so Android never grays out .json files */}
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            className="hidden"
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md flex flex-col items-center">
+        <div className="w-20 h-20 rounded-full bg-white p-3.5 shadow-md mb-4 flex items-center justify-center border border-slate-200 dark:border-slate-800">
+          <img
+            src="icon.svg"
+            alt="Morfo"
+            className="w-full h-full object-contain"
           />
-          <p className="text-[11px] text-slate-400 dark:text-slate-500 text-center">
-            {t('androidFileHint')}
-          </p>
+        </div>
+        <h2 className="text-center text-3xl font-extrabold text-slate-900 dark:text-white">
+          {t('welcome')}
+        </h2>
+        <p className="mt-2 text-center text-sm text-slate-600 dark:text-slate-400">
+          {t('whatsYourName')}
+        </p>
+      </div>
 
-          <button
-            type="button"
-            onClick={() => setShowPasteBox(!showPasteBox)}
-            className="w-full flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-primary transition-colors"
-          >
-            <FileText size={14} />
-            <span>{t('pasteBackupText')}</span>
-            {showPasteBox ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </button>
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white dark:bg-slate-900 py-8 px-5 shadow-sm rounded-2xl sm:px-10 border border-slate-200 dark:border-slate-800 space-y-6">
+          <form className="space-y-5" onSubmit={handleSubmit}>
+            <div>
+              <label htmlFor="language" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                {t('selectLanguage')}
+              </label>
+              <div className="mt-1">
+                <select
+                  id="language"
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value as Language)}
+                  className="block w-full px-3 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl shadow-2xs focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                >
+                  <option value="es">Español</option>
+                  <option value="en">English</option>
+                </select>
+              </div>
+            </div>
 
-          {showPasteBox && (
-            <div className="space-y-2 pt-1">
-              <textarea
-                rows={4}
-                value={pastedText}
-                onChange={(e) => setPastedText(e.target.value)}
-                placeholder={t('pasteBackupPlaceholder')}
-                className="w-full p-2.5 text-xs font-mono bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-primary"
-              />
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                {t('yourName')}
+              </label>
+              <div className="mt-1">
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="appearance-none block w-full px-3.5 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl shadow-2xs placeholder-slate-400 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm"
+                  placeholder={t('namePlaceholder')}
+                />
+              </div>
+            </div>
+
+            <div>
               <button
-                type="button"
-                disabled={isRestoring || !pastedText.trim()}
-                onClick={handlePasteRestore}
-                className="w-full min-h-[40px] py-2 px-3 bg-slate-800 dark:bg-slate-700 text-white rounded-lg text-xs font-medium hover:bg-slate-700 disabled:opacity-50 transition-colors"
+                type="submit"
+                disabled={isRestoring}
+                className="w-full min-h-[48px] flex justify-center items-center py-2.5 px-4 border border-transparent rounded-xl shadow-xs text-sm font-semibold text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors"
               >
-                {t('restoreFromText')}
+                {t('start')}
               </button>
             </div>
-          )}
+          </form>
+
+          {/* Direct Backup Restore Section (Cloud + File + Paste) */}
+          <div className="pt-5 border-t border-slate-200 dark:border-slate-800 space-y-3">
+            <p className="text-xs font-medium text-center text-slate-500 dark:text-slate-400">
+              {t('haveBackupQuestion')}
+            </p>
+
+            {/* 1-Tap Google Cloud Restore */}
+            <button
+              type="button"
+              disabled={isRestoring}
+              onClick={handleCloudSignInAndRestore}
+              className="w-full min-h-[46px] flex items-center justify-center gap-2 py-2.5 px-4 border border-primary/50 rounded-xl text-sm font-semibold text-primary bg-primary/5 hover:bg-primary/10 transition-colors"
+            >
+              <Cloud size={18} />
+              <span>{isRestoring ? t('importing') : t('restoreFromGoogleCloud')}</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={isRestoring}
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full min-h-[44px] flex items-center justify-center gap-2 py-2.5 px-4 border border-slate-300 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+            >
+              <Upload size={17} className="text-primary" />
+              <span>{t('restoreFromBackup')}</span>
+            </button>
+
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 text-center leading-relaxed">
+              {t('androidFileHint')}
+            </p>
+
+            <button
+              type="button"
+              onClick={() => setShowPasteBox(!showPasteBox)}
+              className="w-full flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-primary transition-colors"
+            >
+              <FileText size={14} />
+              <span>{t('pasteBackupText')}</span>
+              {showPasteBox ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </button>
+
+            {showPasteBox && (
+              <div className="space-y-2 pt-1">
+                <textarea
+                  rows={4}
+                  value={pastedJson}
+                  onChange={(e) => setPastedJson(e.target.value)}
+                  placeholder={t('pasteBackupPlaceholder')}
+                  className="w-full p-2.5 text-xs font-mono border border-slate-300 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <button
+                  type="button"
+                  disabled={isRestoring || !pastedJson.trim()}
+                  onClick={handlePasteRestore}
+                  className="w-full min-h-[40px] py-2 px-4 bg-slate-800 dark:bg-slate-700 text-white rounded-xl text-xs font-semibold hover:bg-slate-700 disabled:opacity-50 transition-colors"
+                >
+                  {t('restoreFromText')}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

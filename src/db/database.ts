@@ -93,6 +93,7 @@ export function incrementPendingBackupChanges(): void {
   const current = getPendingBackupChanges();
   localStorage.setItem(PENDING_CHANGES_KEY, String(current + 1));
   window.dispatchEvent(new Event('morfo-backup-changes'));
+  window.dispatchEvent(new Event('morfo-db-mutated'));
 }
 
 export function resetPendingBackupChanges(): void {

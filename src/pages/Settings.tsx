@@ -30,6 +30,15 @@ import {
   ChevronDown,
   ChevronUp,
   RotateCcw,
+  Cloud,
+  RefreshCw,
+  Users,
+  Copy,
+  Link2,
+  Unlink,
+  Eye,
+  EyeOff,
+  CheckCircle2,
 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import {
@@ -38,6 +47,7 @@ import {
   ThemeColor,
   FontScale,
 } from '../contexts/SettingsContext';
+import { useCloudSync } from '../contexts/CloudSyncContext';
 import { Language } from '../i18n';
 import { toast } from 'react-hot-toast';
 
@@ -54,6 +64,28 @@ export default function Settings() {
     fontScale,
     setFontScale,
   } = useSettings();
+
+  const {
+    user,
+    isSyncing,
+    lastCloudSyncAt,
+    myShareCode,
+    linkedPartnerCode,
+    partnerName,
+    showPartnerData,
+    setShowPartnerData,
+    signInWithGoogle,
+    signOutCloud,
+    syncNowToCloud,
+    restoreFromCloudVault,
+    checkHasCloudVault,
+    linkPartnerByCode,
+    unlinkPartner,
+  } = useCloudSync();
+
+  const [partnerCodeInput, setPartnerCodeInput] = useState('');
+  const [isLinkingPartner, setIsLinkingPartner] = useState(false);
+  const [showCloudRestoreModal, setShowCloudRestoreModal] = useState(false);
 
   const [backupReminder, setBackupReminder] = useState<string>(
     () => localStorage.getItem('backupReminder') || 'monthly'
@@ -83,6 +115,67 @@ export default function Settings() {
       .then(setPreparedBackupBlob)
       .catch((err) => console.warn('Could not pre-generate backup blob:', err));
   }, []);
+
+  const handleConnectGoogle = async () => {
+    const signedInUser = await signInWithGoogle();
+    if (!signedInUser) return;
+
+    const vaultInfo = await checkHasCloudVault(signedInUser.uid);
+    const localVisitsCount = await db.visits.count();
+
+    // If user has a cloud backup and no local visits yet, prompt to restore; otherwise sync current data
+    if (vaultInfo.exists && localVisitsCount === 0) {
+      setShowCloudRestoreModal(true);
+    } else {
+      const ok = await syncNowToCloud();
+      if (ok) toast.success(t('cloudSyncSuccess'));
+    }
+  };
+
+  const handleSyncNow = async () => {
+    const ok = await syncNowToCloud();
+    if (ok) {
+      toast.success(t('cloudSyncSuccess'));
+    }
+  };
+
+  const handleConfirmCloudRestore = async () => {
+    setShowCloudRestoreModal(false);
+    const ok = await restoreFromCloudVault();
+    if (ok) {
+      toast.success(t('importSuccess'));
+    } else {
+      toast.error(t('noCloudBackupFound'));
+    }
+  };
+
+  const handleCopyPartnerCode = async () => {
+    try {
+      await navigator.clipboard.writeText(myShareCode);
+      toast.success(t('partnerCodeCopied'));
+    } catch {
+      toast.error(t('updateError'));
+    }
+  };
+
+  const handleLinkPartner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!partnerCodeInput.trim()) return;
+    setIsLinkingPartner(true);
+    try {
+      // Ensure our own schedule is synced too
+      await syncNowToCloud();
+      const ok = await linkPartnerByCode(partnerCodeInput);
+      if (ok) {
+        setPartnerCodeInput('');
+        toast.success(t('partnerLinkSuccess', { name: partnerName || 'Compañero' }));
+      } else {
+        toast.error(t('partnerLinkError'));
+      }
+    } finally {
+      setIsLinkingPartner(false);
+    }
+  };
 
   const handleExport = async () => {
     try {
@@ -243,6 +336,203 @@ export default function Settings() {
         <p className="text-slate-500 dark:text-slate-400 text-sm">{t('manageDataPrefs')}</p>
       </div>
 
+      {/* 1. Automatic Cloud Backup (Firebase) */}
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-xs border border-slate-200/80 dark:border-slate-800 space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+          <h3 className="font-bold text-slate-800 dark:text-slate-100 flex items-center">
+            <Cloud className="mr-2 text-primary" size={20} />
+            {t('cloudSyncTitle')}
+          </h3>
+          {user && (
+            <span className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+              <CheckCircle2 size={15} />
+              <span>{t('cloudAutoSyncActive')}</span>
+            </span>
+          )}
+        </div>
+
+        <p className="text-sm text-slate-600 dark:text-slate-300">
+          {t('cloudSyncDesc')}
+        </p>
+
+        {!user ? (
+          <button
+            type="button"
+            onClick={handleConnectGoogle}
+            className="w-full min-h-[48px] flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl text-sm font-semibold text-white bg-primary hover:bg-primary-dark transition-colors shadow-2xs"
+          >
+            <Cloud size={18} />
+            <span>{t('connectGoogleCloud')}</span>
+          </button>
+        ) : (
+          <div className="space-y-3 bg-slate-50 dark:bg-slate-800/60 p-4 rounded-xl border border-slate-200/80 dark:border-slate-700">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate">
+                  {t('cloudConnectedAs', { email: user.email || user.displayName || 'Google' })}
+                </p>
+                {lastCloudSyncAt && (
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 tabular-nums">
+                    {t('lastSyncedAt', {
+                      time: new Date(lastCloudSyncAt).toLocaleString(),
+                    })}
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={signOutCloud}
+                className="text-xs font-medium text-red-600 dark:text-red-400 hover:underline"
+              >
+                {t('disconnectCloud')}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+              <button
+                type="button"
+                disabled={isSyncing}
+                onClick={handleSyncNow}
+                className="min-h-[42px] flex items-center justify-center gap-2 py-2 px-3 bg-primary text-white rounded-xl text-xs font-semibold hover:bg-primary-dark disabled:opacity-50 transition-colors"
+              >
+                <RefreshCw size={15} className={isSyncing ? 'animate-spin' : ''} />
+                <span>{t('syncNow')}</span>
+              </button>
+              <button
+                type="button"
+                disabled={isSyncing}
+                onClick={() => setShowCloudRestoreModal(true)}
+                className="min-h-[42px] flex items-center justify-center gap-2 py-2 px-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-medium hover:border-primary transition-colors"
+              >
+                <RotateCcw size={15} />
+                <span>{t('restoreFromCloudBtn')}</span>
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 2. Optional Pioneering Partner / Spouse Sharing + Independent Visibility Toggle */}
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-xs border border-slate-200/80 dark:border-slate-800 space-y-4">
+        <h3 className="font-bold text-slate-800 dark:text-slate-100 flex items-center border-b border-slate-100 dark:border-slate-800 pb-3">
+          <Users className="mr-2 text-primary" size={20} />
+          {t('partnerSectionTitle')}
+        </h3>
+
+        <p className="text-sm text-slate-600 dark:text-slate-300">
+          {t('partnerSectionDesc')}
+        </p>
+
+        {!user ? (
+          <div className="p-3.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 text-xs text-amber-900 dark:text-amber-200">
+            {t('partnerRequiresCloud')}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Publisher's Own Share Code */}
+            <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3">
+              <div>
+                <span className="block text-xs text-slate-500 dark:text-slate-400">
+                  {t('yourPartnerCodeLabel')}
+                </span>
+                <span className="text-base font-mono font-bold text-primary tracking-wider">
+                  {myShareCode}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleCopyPartnerCode}
+                className="min-h-[38px] px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-200 hover:border-primary flex items-center gap-1.5 transition-colors"
+              >
+                <Copy size={14} />
+                <span>{t('copyPartnerCode')}</span>
+              </button>
+            </div>
+
+            {/* Linked Partner Status OR Code Input */}
+            {linkedPartnerCode ? (
+              <div className="space-y-4 bg-slate-50 dark:bg-slate-800/60 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-200 dark:border-slate-700">
+                  <div>
+                    <span className="text-sm font-bold text-slate-800 dark:text-slate-100 block">
+                      {t('partnerLinkedWith', { name: partnerName || linkedPartnerCode })}
+                    </span>
+                    <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
+                      {linkedPartnerCode}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={unlinkPartner}
+                    className="min-h-[36px] px-3 py-1.5 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/60 rounded-lg text-xs font-medium flex items-center gap-1.5 hover:bg-red-100 transition-colors"
+                  >
+                    <Unlink size={14} />
+                    <span>{t('unlinkPartnerBtn')}</span>
+                  </button>
+                </div>
+
+                {/* Independent Per-Partner Toggle: Show or Hide Partner's Schedule & Map */}
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <div className="font-medium text-slate-800 dark:text-slate-100 text-sm flex items-center gap-2">
+                      {showPartnerData ? (
+                        <Eye size={16} className="text-primary shrink-0" />
+                      ) : (
+                        <EyeOff size={16} className="text-slate-400 shrink-0" />
+                      )}
+                      <span>
+                        {t('showPartnerDataToggle', { name: partnerName || 'Compañero' })}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      {t('showPartnerDataDesc')}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={showPartnerData}
+                    onClick={() => setShowPartnerData(!showPartnerData)}
+                    className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      showPartnerData ? 'bg-primary' : 'bg-slate-300 dark:bg-slate-700'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-sm transition duration-200 ease-in-out ${
+                        showPartnerData ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleLinkPartner} className="space-y-2">
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                  {t('enterPartnerCodeLabel')}
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={partnerCodeInput}
+                    onChange={(e) => setPartnerCodeInput(e.target.value.toUpperCase())}
+                    placeholder={t('partnerCodePlaceholder')}
+                    className="flex-1 min-h-[44px] px-3.5 py-2 text-sm font-mono uppercase bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isLinkingPartner || !partnerCodeInput.trim()}
+                    className="min-h-[44px] px-4 py-2 bg-primary text-white rounded-xl text-xs font-semibold hover:bg-primary-dark disabled:opacity-50 flex items-center gap-1.5 transition-colors shrink-0"
+                  >
+                    <Link2 size={16} />
+                    <span>{t('linkPartnerBtn')}</span>
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Appearance & Accessibility */}
       <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-xs border border-slate-200/80 dark:border-slate-800 space-y-5">
         <h3 className="font-bold text-slate-800 dark:text-slate-100 flex items-center border-b border-slate-100 dark:border-slate-800 pb-3">
@@ -331,7 +621,7 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* External Backup & Restore (Android Compatible) */}
+      {/* External Manual File Backup & Restore (Android Compatible) */}
       <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-xs border border-slate-200/80 dark:border-slate-800 space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
           <h3 className="font-bold text-slate-800 dark:text-slate-100 flex items-center">
@@ -376,7 +666,6 @@ export default function Settings() {
             <Upload className="mr-2 shrink-0" size={18} />
             <span>{t('importData')}</span>
           </button>
-          {/* Unrestricted file input so Android never grays out .json or .txt backup files */}
           <input
             type="file"
             className="hidden"
@@ -491,6 +780,45 @@ export default function Settings() {
           </button>
         </div>
       </div>
+
+      {/* Cloud Restore Confirmation Modal */}
+      {showCloudRestoreModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-lg max-w-sm w-full overflow-hidden">
+            <div className="flex justify-between items-center p-4 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center text-primary">
+                <Cloud size={20} className="mr-2" />
+                <h3 className="font-bold">{t('restoreFromCloudBtn')}</h3>
+              </div>
+              <button
+                onClick={() => setShowCloudRestoreModal(false)}
+                className="min-h-[40px] min-w-[40px] flex items-center justify-center text-slate-400 hover:text-slate-600"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-4">
+              <p className="text-sm text-slate-700 dark:text-slate-200 font-medium">
+                {t('cloudRestoreConfirm')}
+              </p>
+            </div>
+            <div className="flex border-t border-slate-100 dark:border-slate-800">
+              <button
+                onClick={() => setShowCloudRestoreModal(false)}
+                className="flex-1 min-h-[48px] py-3 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+              >
+                {t('cancel')}
+              </button>
+              <button
+                onClick={handleConfirmCloudRestore}
+                className="flex-1 min-h-[48px] py-3 text-sm font-medium text-white bg-primary hover:bg-primary-dark"
+              >
+                {t('restore')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete All Data Modal */}
       {showDeleteModal && (

@@ -4,9 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import 'leaflet/dist/leaflet.css';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/database';
-import { X, Navigation, Eye, Crosshair } from 'lucide-react';
+import { X, Navigation, Eye, Crosshair, Users } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { interestMapIcons, userLocationIcon } from '../utils/mapIcons';
+import { useCloudSync } from '../contexts/CloudSyncContext';
+import { interestMapIcons, userLocationIcon, partnerVisitIcon } from '../utils/mapIcons';
 import { toast } from 'react-hot-toast';
 
 function MapUpdater({ center, zoom }: { center: [number, number], zoom?: number }) {
@@ -17,13 +18,18 @@ function MapUpdater({ center, zoom }: { center: [number, number], zoom?: number 
   return null;
 }
 
+type PinFilter = 'all' | 'mine' | 'partner';
+
 export default function MapView() {
   const navigate = useNavigate();
   const visits = useLiveQuery(() => db.visits.toArray());
   const { t } = useLanguage();
+  const { linkedPartnerCode, partnerName, partnerVisits, showPartnerData } = useCloudSync();
+
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number]>([-27.33056, -55.86667]);
   const [zoomLevel, setZoomLevel] = useState(14);
+  const [pinFilter, setPinFilter] = useState<PinFilter>('all');
 
   useEffect(() => {
     if ('geolocation' in navigator) {
@@ -39,6 +45,14 @@ export default function MapView() {
   }, []);
 
   const validVisits = visits?.filter(v => v.latitude !== null && v.longitude !== null) || [];
+  const validPartnerVisits =
+    linkedPartnerCode && showPartnerData
+      ? partnerVisits.filter(v => v.latitude !== null && v.longitude !== null)
+      : [];
+
+  const showMyPins = pinFilter === 'all' || pinFilter === 'mine';
+  const showPartnerPins =
+    Boolean(linkedPartnerCode && showPartnerData) && (pinFilter === 'all' || pinFilter === 'partner');
 
   const handleCenterOnUser = () => {
     if (userLocation) {
@@ -51,11 +65,50 @@ export default function MapView() {
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-100 dark:bg-slate-950 flex flex-col">
-      <div className="bg-slate-800 dark:bg-slate-900 border-b border-primary text-white h-14 px-4 shadow-sm flex justify-between items-center">
-        <h2 className="font-bold text-lg">{t('territoryMap')}</h2>
+      <div className="bg-slate-800 dark:bg-slate-900 border-b border-primary text-white h-14 px-4 shadow-sm flex justify-between items-center gap-3">
+        <h2 className="font-bold text-lg truncate">{t('territoryMap')}</h2>
+
+        {linkedPartnerCode && showPartnerData && (
+          <div className="flex items-center gap-1 bg-slate-900/90 p-1 rounded-xl border border-slate-700">
+            <button
+              type="button"
+              onClick={() => setPinFilter('all')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
+                pinFilter === 'all'
+                  ? 'bg-primary text-white font-semibold'
+                  : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              {t('filterAllPins')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setPinFilter('mine')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
+                pinFilter === 'mine'
+                  ? 'bg-primary text-white font-semibold'
+                  : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              {t('filterMyPins')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setPinFilter('partner')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
+                pinFilter === 'partner'
+                  ? 'bg-violet-600 text-white font-semibold'
+                  : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              {t('filterPartnerPins', { name: partnerName || 'Compañero' })}
+            </button>
+          </div>
+        )}
+
         <button
           onClick={() => navigate(-1)}
-          className="min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-slate-700 rounded-full transition-colors"
+          className="min-h-[44px] min-w-[44px] flex items-center justify-center hover:bg-slate-700 rounded-full transition-colors shrink-0"
         >
           <X size={24} />
         </button>
@@ -92,47 +145,89 @@ export default function MapView() {
               <Popup>{t('yourCurrentLocation')}</Popup>
             </Marker>
           )}
-        
-          {validVisits.map((visit) => (
-            <Marker
-              key={visit.id}
-              position={[visit.latitude as number, visit.longitude as number]}
-              icon={interestMapIcons[visit.interestLevel] || interestMapIcons.Medio}
-            >
-              <Popup className="custom-popup">
-                <div className="p-1 min-w-[200px]">
-                  <h3 className="font-bold text-slate-800 dark:text-slate-100 text-base">{visit.name}</h3>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">{visit.generalNotes || visit.houseDescription}</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-                    {t('interest')}: <span className="font-semibold ml-1">{visit.interestLevel === 'Alto' ? t('high') : visit.interestLevel === 'Medio' ? t('medium') : t('low')}</span>
-                  </p>
-                  {visit.nextVisitDate && (
-                    <p className="text-xs text-primary mt-1 font-medium tabular-nums">
-                      {t('visit')}: {new Date(visit.nextVisitDate).toLocaleDateString()}
+
+          {showMyPins &&
+            validVisits.map((visit) => (
+              <Marker
+                key={`mine-${visit.id}`}
+                position={[visit.latitude as number, visit.longitude as number]}
+                icon={interestMapIcons[visit.interestLevel] || interestMapIcons.Medio}
+              >
+                <Popup className="custom-popup">
+                  <div className="p-1 min-w-[200px]">
+                    <h3 className="font-bold text-slate-800 dark:text-slate-100 text-base">{visit.name}</h3>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">{visit.generalNotes || visit.houseDescription}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                      {t('interest')}: <span className="font-semibold ml-1">{visit.interestLevel === 'Alto' ? t('high') : visit.interestLevel === 'Medio' ? t('medium') : t('low')}</span>
                     </p>
-                  )}
-                  <div className="flex flex-col space-y-2 mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-700">
-                    <button
-                      onClick={() => navigate(`/person/${visit.id}`)}
-                      className="min-h-[38px] flex items-center justify-center w-full px-3 py-1.5 bg-primary text-white rounded-lg text-xs font-medium hover:bg-primary-dark"
-                    >
-                      <Eye size={14} className="mr-1.5" />
-                      {t('openRecord')}
-                    </button>
-                    <a
-                      href={`https://www.google.com/maps/dir/?api=1&destination=${visit.latitude},${visit.longitude}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="min-h-[38px] flex items-center justify-center w-full px-3 py-1.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-medium hover:bg-blue-100 no-underline"
-                    >
-                      <Navigation size={14} className="mr-1.5" />
-                      {t('navigateMap')}
-                    </a>
+                    {visit.nextVisitDate && (
+                      <p className="text-xs text-primary mt-1 font-medium tabular-nums">
+                        {t('visit')}: {new Date(visit.nextVisitDate).toLocaleDateString()}
+                      </p>
+                    )}
+                    <div className="flex flex-col space-y-2 mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-700">
+                      <button
+                        onClick={() => navigate(`/person/${visit.id}`)}
+                        className="min-h-[38px] flex items-center justify-center w-full px-3 py-1.5 bg-primary text-white rounded-lg text-xs font-medium hover:bg-primary-dark"
+                      >
+                        <Eye size={14} className="mr-1.5" />
+                        {t('openRecord')}
+                      </button>
+                      <a
+                        href={`https://www.google.com/maps/dir/?api=1&destination=${visit.latitude},${visit.longitude}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="min-h-[38px] flex items-center justify-center w-full px-3 py-1.5 bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-medium hover:bg-blue-100 no-underline"
+                      >
+                        <Navigation size={14} className="mr-1.5" />
+                        {t('navigateMap')}
+                      </a>
+                    </div>
                   </div>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
+                </Popup>
+              </Marker>
+            ))}
+
+          {showPartnerPins &&
+            validPartnerVisits.map((pVisit, idx) => (
+              <Marker
+                key={`partner-${pVisit.id}-${idx}`}
+                position={[pVisit.latitude as number, pVisit.longitude as number]}
+                icon={partnerVisitIcon}
+              >
+                <Popup className="custom-popup">
+                  <div className="p-1 min-w-[200px]">
+                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-violet-600 dark:text-violet-400 mb-1">
+                      <Users size={13} />
+                      <span>{t('partnerPinBadge', { name: partnerName || 'Compañero' })}</span>
+                    </div>
+                    <h3 className="font-bold text-slate-800 dark:text-slate-100 text-base">
+                      {pVisit.name}
+                    </h3>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
+                      {pVisit.houseDescription || pVisit.generalNotes || t('withoutNotes')}
+                    </p>
+                    {pVisit.isRecurringStudy && (
+                      <p className="text-xs text-violet-600 dark:text-violet-400 font-medium mt-1">
+                        {t('bibleCourse')}
+                        {pVisit.recurringStudyTime ? ` · ${pVisit.recurringStudyTime}` : ''}
+                      </p>
+                    )}
+                    <div className="flex flex-col space-y-2 mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-700">
+                      <a
+                        href={`https://www.google.com/maps/dir/?api=1&destination=${pVisit.latitude},${pVisit.longitude}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="min-h-[38px] flex items-center justify-center w-full px-3 py-1.5 bg-violet-600 text-white rounded-lg text-xs font-medium hover:bg-violet-700 no-underline"
+                      >
+                        <Navigation size={14} className="mr-1.5" />
+                        {t('navigateMap')}
+                      </a>
+                    </div>
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
         </MapContainer>
       </div>
     </div>

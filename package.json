@@ -17,6 +17,7 @@
     "dexie": "^4.0.10",
     "dexie-export-import": "^4.4.0",
     "dexie-react-hooks": "^1.1.7",
+    "firebase": "^13.1.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.30.0",
     "react": "^19.0.0",

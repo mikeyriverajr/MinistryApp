@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, Visit, incrementPendingBackupChanges } from '../db/database';
-import { MapPin, Save, ArrowLeft, Check, Maximize, X } from 'lucide-react';
+import { MapPin, Save, ArrowLeft, Check, Maximize, X, AlertTriangle } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap, LayersControl } from 'react-leaflet';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSettings } from '../contexts/SettingsContext';
+import { useCloudSync } from '../contexts/CloudSyncContext';
+import { formatTime } from '../utils/timeFormat';
 import { defaultSelectedIcon } from '../utils/mapIcons';
 import { toast } from 'react-hot-toast';
 import 'leaflet/dist/leaflet.css';
@@ -206,6 +208,14 @@ export default function VisitForm() {
       toast.error(t('saveError'));
     }
   };
+
+  const { findScheduleConflicts, partnerName } = useCloudSync();
+
+  const scheduleConflicts = findScheduleConflicts(
+    formData.nextVisitDate ? new Date(formData.nextVisitDate) : null,
+    formData.isRecurringStudy ? (formData.recurringStudyDayOfWeek ?? 0) : null,
+    formData.isRecurringStudy ? (formData.recurringStudyTime || '10:00') : null
+  );
 
   const defaultCenter: [number, number] = [-27.33056, -55.86667];
   const mapCenter = formData.latitude && formData.longitude
@@ -450,6 +460,30 @@ export default function VisitForm() {
                   className="w-full px-2.5 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
+            </div>
+          )}
+
+          {/* Live Partner Schedule Conflict Alert */}
+          {scheduleConflicts.length > 0 && (
+            <div className="mt-4 p-3.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800/70 rounded-xl space-y-1.5">
+              <div className="flex items-center gap-2 text-xs font-bold text-amber-900 dark:text-amber-200">
+                <AlertTriangle size={16} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                <span>
+                  {t('scheduleConflictTitle', { partner: partnerName || 'Compañero' })}
+                </span>
+              </div>
+              <ul className="space-y-1 pl-6 list-disc text-xs text-amber-800 dark:text-amber-300 tabular-nums">
+                {scheduleConflicts.map((c, idx) => (
+                  <li key={idx}>
+                    {t('scheduleConflictItem', {
+                      partner: c.partnerName,
+                      type: c.isRecurringStudy ? t('bibleCourse') : t('returnVisit'),
+                      visit: c.visitName,
+                      time: formatTime(c.timeStr, timeFormat === '12h'),
+                    })}
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </div>

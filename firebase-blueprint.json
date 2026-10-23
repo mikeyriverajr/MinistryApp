@@ -1,0 +1,114 @@
+{
+  "entities": {
+    "UserVault": {
+      "title": "UserVault",
+      "description": "Private automatic cloud backup vault for a Morfo publisher.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the publisher.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "publisherName": {
+          "type": "string",
+          "description": "Display name of the publisher.",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "visits": {
+          "type": "array",
+          "description": "Bounded array of publisher return visits and Bible courses (max 500)."
+        },
+        "timeEntries": {
+          "type": "array",
+          "description": "Bounded array of publisher hour logs (max 1000)."
+        },
+        "monthlyStats": {
+          "type": "array",
+          "description": "Bounded array of monthly study count overrides (max 120)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when vault was first created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of the latest sync."
+        }
+      },
+      "required": [
+        "ownerId",
+        "publisherName",
+        "visits",
+        "timeEntries",
+        "monthlyStats",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "PartnerShare": {
+      "title": "PartnerShare",
+      "description": "Shared schedule and GPS pin document for a publisher's pioneer partner or spouse.",
+      "type": "object",
+      "properties": {
+        "shareCode": {
+          "type": "string",
+          "description": "Unique 6-12 character uppercase alphanumeric share code.",
+          "minLength": 6,
+          "maxLength": 16,
+          "pattern": "^[A-Z0-9\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the publisher sharing their schedule.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerName": {
+          "type": "string",
+          "description": "Display name of the publisher sharing their schedule.",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "sharedVisits": {
+          "type": "array",
+          "description": "Bounded array of sanitized schedule & GPS items (max 500)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when share document was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp of latest schedule update."
+        }
+      },
+      "required": [
+        "shareCode",
+        "ownerId",
+        "ownerName",
+        "sharedVisits",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/userVaults/{userId}": {
+      "schema": "UserVault",
+      "description": "Strictly private cloud backup vault per publisher UID."
+    },
+    "/partnerShares/{shareCode}": {
+      "schema": "PartnerShare",
+      "description": "Shared schedule and map pins keyed by partner share code."
+    }
+  }
+}

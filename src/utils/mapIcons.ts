@@ -25,3 +25,5 @@ export const interestMapIcons = {
 
 export const userLocationIcon = createSvgPinIcon('#1e293b', '#38bdf8');
 export const defaultSelectedIcon = createSvgPinIcon('#e07a5f');
+export const partnerVisitIcon = createSvgPinIcon('#7c3aed', '#f5f3ff'); // Distinct Purple Pin for Partner
+
